@@ -3,6 +3,7 @@ members = [
     "crates/mobile-core",
     "crates/mobile-ai",
     "crates/mobile-ffi",
+    "crates/shell-ffi",
 ]
 resolver = "2"
 

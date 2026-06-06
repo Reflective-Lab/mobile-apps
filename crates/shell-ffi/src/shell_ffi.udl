@@ -1,0 +1,4 @@
+namespace reflective_shell_ffi {
+    string greet(string name);
+    string core_version();
+};

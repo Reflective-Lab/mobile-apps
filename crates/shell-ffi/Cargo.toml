@@ -1,0 +1,22 @@
+[package]
+name = "reflective-shell-ffi"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Product-neutral UniFFI surface used by the native shell templates to prove the Rust→Swift/Kotlin pipeline. Not a product API."
+
+[lib]
+name = "reflective_shell_ffi"
+path = "src/lib.rs"
+crate-type = ["staticlib", "cdylib", "lib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+uniffi = { version = "0.28", features = ["cli"] }
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }
