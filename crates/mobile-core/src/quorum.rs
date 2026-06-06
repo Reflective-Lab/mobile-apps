@@ -66,7 +66,8 @@ pub fn draft_field_signal(
         raw_capture: raw_capture.to_owned(),
         summary,
         latent_need: "needs earlier visibility into organizational ambiguity".to_owned(),
-        contradiction: "participants report alignment while surfacing unresolved tension".to_owned(),
+        contradiction: "participants report alignment while surfacing unresolved tension"
+            .to_owned(),
         confidence: 0.67,
         consent_state: "pending".to_owned(),
     }
@@ -119,4 +120,3 @@ mod tests {
         assert_eq!(event.sync_state, "queued_for_sync");
     }
 }
-

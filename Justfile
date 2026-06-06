@@ -4,8 +4,21 @@ default:
 fmt:
     cargo fmt --all
 
+fmt-check:
+    cargo fmt --all --check
+
+lint:
+    cargo clippy --workspace --all-targets -- -D warnings
+
 test:
-    cargo test --workspace
+    cargo test --workspace --locked
 
-check: fmt test
+doc:
+    cargo doc --workspace --no-deps --locked
 
+scaffold-check:
+    bash scripts/check-mobile-scaffold.sh
+
+check: fmt test scaffold-check
+
+ci: fmt-check lint test doc scaffold-check

@@ -1,5 +1,11 @@
 .DS_Store
 target/
+.build/
+.swiftpm/
+DerivedData/
+*.xcresult
+**/.gradle/
+**/build/
 archive/legacy-placeholders/converge-android/
 archive/legacy-placeholders/converge-ios/
 archive/legacy-placeholders/wolfgang-android/

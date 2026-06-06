@@ -28,6 +28,7 @@ Converge placeholders.
 ## Commands
 
 - `just check` or `cargo test --workspace`
+- `just ci` for the local equivalent of the GitHub Actions gate
 - `just fmt` for Rust formatting
 
 ## Boundaries
@@ -37,4 +38,3 @@ Converge placeholders.
 - Do not add network-bound dependencies just to make a scaffold look complete.
 - Keep mobile app charters aligned with `../marquee-apps/README.md` and
   `../studio-apps/README.md`.
-

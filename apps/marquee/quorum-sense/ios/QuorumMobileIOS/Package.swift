@@ -5,7 +5,8 @@ import PackageDescription
 let package = Package(
     name: "QuorumMobileIOS",
     platforms: [
-        .iOS(.v18)
+        .iOS(.v18),
+        .macOS(.v14)
     ],
     products: [
         .library(
@@ -19,4 +20,3 @@ let package = Package(
         )
     ]
 )
-

@@ -67,12 +67,24 @@ Studio candidates are lower commitment for now:
 ## Commands
 
 ```sh
-cargo test --workspace
+cargo test --workspace --locked
 ```
 
 If `just` is installed:
 
 ```sh
 just check
+just ci
 ```
 
+## CI/CD
+
+The baseline workflows live in `.github/workflows/`:
+
+- `ci.yml` runs Rust format, clippy, tests, docs, and scaffold checks on pushes
+  and pull requests.
+- `release-preflight.yml` runs the same gates for version tags and manual
+  dispatches, then packages the current scaffold as a GitHub Actions artifact.
+
+Native iOS and Android build jobs should be added after the first generated
+UniFFI bindings are checked in.

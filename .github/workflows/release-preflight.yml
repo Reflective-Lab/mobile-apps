@@ -1,0 +1,50 @@
+name: Release Preflight
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+
+      - name: Use stable Rust
+        run: rustup default stable
+
+      - name: Run gates
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test --workspace --locked
+          cargo doc --workspace --no-deps --locked
+          bash scripts/check-mobile-scaffold.sh
+
+      - name: Package scaffold artifact
+        run: |
+          tar -czf reflective-mobile-scaffold.tar.gz \
+            README.md AGENTS.md Cargo.toml Cargo.lock Justfile \
+            apps/marquee/quorum-sense \
+            crates docs schemas templates
+
+      - name: Upload scaffold artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reflective-mobile-scaffold
+          path: reflective-mobile-scaffold.tar.gz
+          if-no-files-found: error
+
