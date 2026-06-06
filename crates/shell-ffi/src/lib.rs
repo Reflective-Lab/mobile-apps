@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_doc_comments)]
+
 uniffi::include_scaffolding!("shell_ffi");
 
 pub fn greet(name: String) -> String {
