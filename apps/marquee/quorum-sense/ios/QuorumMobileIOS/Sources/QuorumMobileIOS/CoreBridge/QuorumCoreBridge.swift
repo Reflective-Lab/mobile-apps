@@ -1,6 +1,7 @@
 import Foundation
 
-public protocol QuorumCoreBridge: Sendable {
+@MainActor
+public protocol QuorumCoreBridge {
     func workflowId() async -> String
     func draftFieldSignal(
         inquiryThreadId: String,
@@ -49,4 +50,3 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
 
 // Replace PreviewQuorumCoreBridge with a UniFFI generated adapter when the
 // Rust bridge is generated from schemas/quorum-mobile.udl.
-
