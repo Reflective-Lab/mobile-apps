@@ -49,6 +49,17 @@ jobs:
       - name: Docs
         run: cargo doc --workspace --no-deps --locked
 
+  ios-shell:
+    name: Quorum iOS Shell
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build SwiftUI package
+        working-directory: apps/marquee/quorum-sense/ios/QuorumMobileIOS
+        run: swift build
+
   scaffold:
     name: Mobile Scaffold
     runs-on: ubuntu-latest
@@ -58,4 +69,3 @@ jobs:
 
       - name: Check scaffold contract
         run: bash scripts/check-mobile-scaffold.sh
-

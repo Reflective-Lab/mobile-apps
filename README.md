@@ -82,7 +82,7 @@ just ci
 The baseline workflows live in `.github/workflows/`:
 
 - `ci.yml` runs Rust format, clippy, tests, docs, and scaffold checks on pushes
-  and pull requests.
+  and pull requests. It also builds the Quorum SwiftUI package on macOS.
 - `release-preflight.yml` runs the same gates for version tags and manual
   dispatches, then packages the current scaffold as a GitHub Actions artifact.
 
