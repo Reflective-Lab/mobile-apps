@@ -1,0 +1,35 @@
+namespace reflective_mobile;
+
+dictionary FfiQuorumSignalDraft {
+    string workflow_id;
+    string draft_id;
+    string inquiry_thread_id;
+    string modality;
+    string raw_capture;
+    string summary;
+    string latent_need;
+    string contradiction;
+    float confidence;
+    string consent_state;
+};
+
+dictionary FfiQuorumAppendEvent {
+    string workflow_id;
+    string event_type;
+    string draft_id;
+    string inquiry_thread_id;
+    string sync_state;
+};
+
+string quorum_field_signal_workflow_id();
+
+FfiQuorumSignalDraft quorum_draft_field_signal(
+    string inquiry_thread_id,
+    string modality,
+    string raw_capture
+);
+
+FfiQuorumAppendEvent quorum_append_consented_signal(
+    FfiQuorumSignalDraft draft
+);
+

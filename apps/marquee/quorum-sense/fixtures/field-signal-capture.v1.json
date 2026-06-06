@@ -1,0 +1,67 @@
+{
+  "id": "quorum.field_signal_capture.v1",
+  "version": 1,
+  "product": "quorum-sense",
+  "source_repo": "../marquee-apps/quorum-sense",
+  "description": "Capture a field signal from text, voice transcript, or image OCR text, produce a local structured draft, require consent, then append the consented signal to a Quorum inquiry thread.",
+  "input": {
+    "inquiry_thread_id": "inq_mobile_launch_risks",
+    "participant_session_id": "session_field_001",
+    "captured_at": "2026-06-06T12:00:00Z",
+    "modality": "voice_transcript",
+    "raw_capture": "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
+    "offline": true
+  },
+  "native_ai": {
+    "ios": {
+      "capture": ["AVFoundation", "Speech"],
+      "local_extraction": ["FoundationModels"],
+      "fallback": ["CoreML"]
+    },
+    "android": {
+      "capture": ["CameraX", "Media3"],
+      "local_extraction": ["GeminiNano", "MLKit"],
+      "fallback": ["LiteRT"]
+    }
+  },
+  "rust_core": {
+    "shared_capabilities": [
+      "DataModels",
+      "AiOrchestration",
+      "DeterministicReplay",
+      "Sync",
+      "StorageModel",
+      "VectorSearch"
+    ],
+    "draft": {
+      "workflow_id": "quorum.field_signal_capture.v1",
+      "draft_id": "draft:inq_mobile_launch_risks:field-signal-v1",
+      "signal_id": "signal:inq_mobile_launch_risks:field-signal-v1",
+      "summary": "Sales reports readiness while support sees repeated pilot confusion.",
+      "latent_need": "needs earlier visibility into organizational ambiguity",
+      "emotion": "concern",
+      "contradiction": "participants report alignment while surfacing unresolved tension",
+      "confidence": 0.67,
+      "consent_state": "pending"
+    },
+    "consent_gate": {
+      "required": true,
+      "default_without_user_acceptance": "do_not_append"
+    },
+    "append_event": {
+      "event_type": "SignalDraftConsented",
+      "sync_state": "queued_for_sync"
+    }
+  },
+  "expected": {
+    "local_state": "draft_visible_to_user",
+    "after_consent": "event_queued_for_sync",
+    "after_online_sync": "signal_appended_to_inquiry_thread",
+    "must_not_do": [
+      "append_without_consent",
+      "treat_model_output_as_truth",
+      "drop_minority_or_ambiguous_signal"
+    ]
+  }
+}
+

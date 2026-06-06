@@ -1,0 +1,13 @@
+[package]
+name = "reflective-mobile-ai"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+reflective-mobile-core = { path = "../mobile-core" }
+
+[lib]
+path = "src/lib.rs"
+
