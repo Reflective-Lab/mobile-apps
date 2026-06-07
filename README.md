@@ -17,6 +17,12 @@ The direction is product-first and native-first:
 - **Platform AI first** whenever Apple or Google provides the best on-device
   runtime for camera, microphone, language, vision, and background work.
 
+## Boundary
+
+> Owns: native iOS (SwiftUI) + Android (Compose) capture surfaces, on-device AI preprocessing, consent gates, structured-packet handoff to the platform via UniFFI/Rust. Does NOT own: governance, fact promotion, billing semantics, product invariants — "It must not silently decide, promote facts, run product invariants, or bypass consent" (`mobile-apps/README.md:120-121`).
+
+— Canonical claim: [Mobile Apps](https://github.com/Reflective-Lab/reflective/blob/main/KB/04-architecture/current-system-map.md#mobile-apps) in the boundary registry. Update there first; this README quotes that source.
+
 ## Why Mobile Exists
 
 Reflective apps are not generic chat wrappers. They are governed work surfaces:
