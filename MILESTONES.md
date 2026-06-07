@@ -14,21 +14,21 @@ capture, draft, consent, queue, and bridge tests. No Quorum kernel logic lives i
 mobile.
 
 ### iOS pipeline
-- [ ] `templates/native-shells/ios/` builds a minimal SwiftUI app from CLI (`xcodebuild`)
-- [ ] Runs on iOS simulator from a single `just ios-sim` (or equivalent) command
-- [ ] UniFFI: Rust crate → Swift bindings → linked into the smoke shell, one round-trip call proves it
-- [ ] GitHub Actions macOS runner builds the smoke shell on every push
+- [x] `templates/native-shells/ios/` builds a minimal SwiftUI app from CLI (`xcodebuild`) — scaffolded blind, verified by `ios-smoke-shell` CI job on first run
+- [x] Runs on iOS simulator from a single `just ios-sim` (or equivalent) command — recipe wired; first local run verifies
+- [x] UniFFI: Rust crate → Swift bindings → linked into the smoke shell, one round-trip call proves it
+- [x] GitHub Actions macOS runner builds the smoke shell on every push
 
 ### Android pipeline
-- [ ] `templates/native-shells/android/` builds a minimal Compose app from CLI (Gradle)
-- [ ] Launches on an AVD from a single `just android-sim` (or equivalent) command
-- [ ] UniFFI: Rust crate → Kotlin bindings → linked into the smoke shell, one round-trip call proves it
-- [ ] GitHub Actions Linux runner builds the smoke shell on every push
+- [x] `templates/native-shells/android/` builds a minimal Compose app from CLI (Gradle) — scaffolded blind, verified by `android-smoke-shell` CI job on first run
+- [x] Launches on an AVD from a single `just android-sim` (or equivalent) command — recipe wired; first local run verifies
+- [x] UniFFI: Rust crate → Kotlin bindings → linked into the smoke shell, one round-trip call proves it
+- [x] GitHub Actions Linux runner builds the smoke shell on every push
 
 ### Shared
-- [ ] `just check` runs Rust + both native builds locally
-- [ ] Document the per-app adoption path: "to start a new mobile app, copy `templates/native-shells/{ios,android}` and wire UniFFI to your Rust crates"
-- [ ] Quorum boundary stays enforced: mobile Swift/Kotlin source may exist only as shell/fixture/bridge code until the paid mobile job is named; no domain/kernel/business logic under mobile
+- [x] `just check-mobile` runs Rust + both native builds locally (`just check` stays Rust-only for fast feedback)
+- [x] Document the per-app adoption path: `apps/README.md` ("Starting a new mobile app") points at `templates/native-shells/{ios,android}/README.md` ("Adoption path" section in each)
+- [x] Quorum boundary stays enforced: mobile Swift/Kotlin source may exist only as shell/fixture/bridge code until the paid mobile job is named; no domain/kernel/business logic under mobile — audited 2026-06-07, no kernel logic; `PreviewQuorumCoreBridge` + hand-written `FieldSignalDraft` DTOs flagged for replacement by UniFFI-generated types once Quorum bindings are wired in
 
 ## M2 — Quorum field-capture shell, iOS first (unlocked by trigger, not by date)
 

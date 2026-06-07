@@ -21,14 +21,20 @@ scaffold-check:
 
 check: fmt test scaffold-check
 
+# Rust + iOS smoke shell + Android smoke shell. Slow. Requires Xcode, Android SDK+NDK, cargo-ndk.
+check-mobile: check ios-build android-build
+
 ci: fmt-check lint test doc scaffold-check
 
 # --- iOS native shell template ---
 
+ios-uniffi:
+    bash scripts/build-shell-ffi-ios.sh
+
 _ios-gen:
     cd templates/native-shells/ios && xcodegen generate
 
-ios-build device="iPhone 16": _ios-gen
+ios-build device="iPhone 16": ios-uniffi _ios-gen
     cd templates/native-shells/ios && xcodebuild \
       -scheme ReflectiveShell \
       -destination 'platform=iOS Simulator,name={{device}}' \
@@ -48,7 +54,10 @@ ios-sim device="iPhone 16": (ios-build device)
 
 # --- Android native shell template ---
 
-android-build:
+android-uniffi:
+    bash scripts/build-shell-ffi-android.sh
+
+android-build: android-uniffi
     cd templates/native-shells/android && ./gradlew :app:assembleDebug
 
 android-sim avd="Pixel_8_API_35": android-build

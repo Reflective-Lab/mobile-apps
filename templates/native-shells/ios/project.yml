@@ -10,6 +10,12 @@ targets:
     platform: iOS
     sources:
       - App
+      - path: CoreBridge
+        excludes:
+          - "*.xcframework/**"
+    dependencies:
+      - framework: CoreBridge/ReflectiveShellFFI.xcframework
+        embed: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.reflective.shell

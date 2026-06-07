@@ -50,8 +50,11 @@ of truth for:
   for Stripe + auth).
 - v1 web SPA: landing, Stripe Checkout, host console, participant join page,
   result page. Served by the same Rust axum process for v1.
-- The paying surface. Stripe Checkout, host JWT issuance, magic-link
-  redemption, participant tokens. Mobile never touches Stripe directly.
+- The membership-gated admission path. Host access requires an active
+  Reflective Labs entitlement, checked against `commerce-rails` on session
+  start. Quorum is not the commercial authority — Stripe, subscriptions,
+  and entitlement grants live in `commerce-rails`. Mobile never touches
+  Stripe directly; it consumes the same entitlement check.
 
 ## What `mobile-apps/apps/marquee/quorum-sense` owns
 
@@ -102,8 +105,11 @@ For v1, mobile is not in scope. When it is added:
 - Transport: same HTTP/SSE the web uses. SSE for `live`, REST for everything
   else. Mobile reuses the SSE event vocabulary
   (`round.started`, `signal.received`, `hypothesis.formed`, …) verbatim.
-- Auth: same participant-token and host-JWT scheme. Tokens are bearer
-  strings; native shells store them in Keychain / EncryptedSharedPreferences.
+- Auth: same Firebase ID-token + `commerce-rails` entitlement-check
+  pattern the web uses. Native shells sign in via the Firebase SDK
+  (anonymous for participants, member sign-in for host); tokens flow as
+  bearer strings; `runway-auth` verifies them server-side. Mobile stores
+  tokens in Keychain / EncryptedSharedPreferences.
 - DTOs: generated from the server's contract. Preferred path is UniFFI over
   the shared Rust crates once `mobile-ffi` exposes the relevant surface. Until
   then, generated from OpenAPI / typed JSON.

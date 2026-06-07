@@ -38,4 +38,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // UniFFI Kotlin bindings depend on JNA at runtime. The @aar variant
+    // bundles the native JNA libs Android needs.
+    implementation("net.java.dev.jna:jna:5.14.0@aar")
 }

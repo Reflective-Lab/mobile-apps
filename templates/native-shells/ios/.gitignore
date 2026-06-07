@@ -2,3 +2,5 @@ ReflectiveShell.xcodeproj/
 build/
 DerivedData/
 .DS_Store
+CoreBridge/ReflectiveShellFFI.xcframework/
+CoreBridge/ReflectiveShellFFI.swift
