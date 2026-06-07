@@ -1,8 +1,8 @@
-use reflective_mobile_ai::{recommended_home, AiTask, ExecutionHome};
+use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};
 use reflective_mobile_core::quorum::{
-    append_consented_signal, draft_field_signal, SignalModality, FIELD_SIGNAL_CAPTURE_WORKFLOW_ID,
+    FIELD_SIGNAL_CAPTURE_WORKFLOW_ID, SignalModality, append_consented_signal, draft_field_signal,
 };
-use reflective_mobile_core::{starter_portfolio, MobilePlatform, ProductFamily, ProductStatus};
+use reflective_mobile_core::{MobilePlatform, ProductFamily, ProductStatus, starter_portfolio};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FfiAppSummary {
