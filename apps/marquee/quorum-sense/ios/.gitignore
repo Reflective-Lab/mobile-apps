@@ -1,0 +1,4 @@
+.DS_Store
+QuorumMobileIOS/.build/
+CoreBridge/ReflectiveMobileFFI.xcframework/
+CoreBridge/ReflectiveMobileFFI.swift

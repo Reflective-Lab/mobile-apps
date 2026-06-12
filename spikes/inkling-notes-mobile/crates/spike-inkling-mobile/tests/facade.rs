@@ -95,7 +95,10 @@ fn navigation_resolves_wiki_links_and_tags() {
         "Projects/Source.md",
         "---\ntags: [Project, inbox/review]\n---\n\nSee [[Target Note]] for details. Body #Area\n",
     );
-    vault.write_note("Projects/Target Note.md", "# Target\n\nPlain body text here.\n");
+    vault.write_note(
+        "Projects/Target Note.md",
+        "# Target\n\nPlain body text here.\n",
+    );
 
     let navigation = build_vault_navigation(vault.root_str()).expect("index builds");
 
@@ -111,7 +114,10 @@ fn navigation_resolves_wiki_links_and_tags() {
     assert_eq!(source.outbound_links, vec!["Projects/Target Note.md"]);
     // Canonical tag normalization: frontmatter list + inline #Area, lowercased.
     for tag in ["project", "inbox/review", "area"] {
-        assert!(source.tags.iter().any(|value| value == tag), "missing tag {tag}");
+        assert!(
+            source.tags.iter().any(|value| value == tag),
+            "missing tag {tag}"
+        );
     }
 
     let target = navigation
@@ -120,7 +126,9 @@ fn navigation_resolves_wiki_links_and_tags() {
         .find(|note| note.vault_path == "Projects/Target Note.md")
         .expect("target note indexed");
     assert!(
-        target.inbound_links.contains(&"Projects/Source.md".to_string()),
+        target
+            .inbound_links
+            .contains(&"Projects/Source.md".to_string()),
         "backlink missing"
     );
 
@@ -135,7 +143,10 @@ fn navigation_resolves_wiki_links_and_tags() {
 #[test]
 fn navigation_flags_orphan_notes() {
     let vault = TempVault::new("nav-orphan");
-    vault.write_note("Resources/Loose End.md", "# Loose End\n\nNo links at all.\n");
+    vault.write_note(
+        "Resources/Loose End.md",
+        "# Loose End\n\nNo links at all.\n",
+    );
 
     let navigation = build_vault_navigation(vault.root_str()).expect("index builds");
 
@@ -147,8 +158,8 @@ fn navigation_flags_orphan_notes() {
 #[test]
 fn dtos_are_serde_friendly() {
     let vault = TempVault::new("serde");
-    let note = capture_text_note(vault.root_str(), "Serde Check", "round trip")
-        .expect("capture succeeds");
+    let note =
+        capture_text_note(vault.root_str(), "Serde Check", "round trip").expect("capture succeeds");
     let json = serde_json::to_string(&note).expect("serializes");
     let back: spike_inkling_mobile::CapturedNoteDto =
         serde_json::from_str(&json).expect("deserializes");

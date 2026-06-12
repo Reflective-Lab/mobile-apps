@@ -109,7 +109,8 @@ pub struct TagCountDto {
 /// options: no image OCR, no external-link fetching — fully offline.
 pub fn build_vault_navigation(vault_root: &str) -> Result<VaultNavigationDto, FacadeError> {
     let vault = ObsidianVault::from_root(vault_root);
-    let report = notes::navigation::build_navigation_index(&vault).map_err(FacadeError::Navigation)?;
+    let report =
+        notes::navigation::build_navigation_index(&vault).map_err(FacadeError::Navigation)?;
     Ok(VaultNavigationDto {
         note_count: report.note_count,
         tag_count: report.tag_count,
