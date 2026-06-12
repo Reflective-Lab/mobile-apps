@@ -1,0 +1,19 @@
+# Standalone spike workspace — intentionally NOT a member of the root
+# mobile-apps workspace. It depends on sibling repos via path, which are
+# unavailable in CI, so this workspace is excluded from `just ci`.
+[workspace]
+resolver = "2"
+members = ["crates/spike-inkling-mobile"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+publish = false
+
+# Mirror of the [patch.crates-io] block in
+# ../../../studio-apps/inkling-notes/Cargo.toml, with paths corrected for
+# this spike's location, so the spike builds against the same unreleased
+# organism platform head as the product app.
+[patch.crates-io]
+organism-intelligence = { path = "../../../bedrock-platform/organism/crates/intelligence" }
+organism-notes = { path = "../../../bedrock-platform/organism/crates/notes" }

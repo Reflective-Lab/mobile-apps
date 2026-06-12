@@ -1,0 +1,44 @@
+# Standalone spike workspace — intentionally NOT a member of the root
+# mobile-apps workspace. It depends on sibling repos via path, which are
+# unavailable in CI, so this workspace is excluded from `just ci`.
+[workspace]
+resolver = "2"
+members = ["crates/spike-quorum-mobile"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+publish = false
+
+# Mirror of the [patch.crates-io] block in
+# ../../../marquee-apps/quorum-sense/Cargo.toml, with paths corrected for
+# this spike's location (one extra `../` vs the product app). Keeps
+# quorum-domain's transitive platform deps on the same local head as
+# quorum-sense when building from a full ~/dev/reflective checkout.
+[patch.crates-io]
+converge-core = { path = "../../../bedrock-platform/converge/crates/core" }
+converge-experience = { path = "../../../bedrock-platform/converge/crates/experience" }
+converge-kernel = { path = "../../../bedrock-platform/converge/crates/kernel" }
+converge-model = { path = "../../../bedrock-platform/converge/crates/model" }
+converge-optimization = { path = "../../../bedrock-platform/converge/crates/optimization" }
+converge-pack = { path = "../../../bedrock-platform/converge/crates/pack" }
+converge-provider = { path = "../../../bedrock-platform/converge/crates/provider" }
+converge-storage = { path = "../../../bedrock-platform/converge/crates/storage" }
+converge-arbiter-policy = { path = "../../../mosaic-extensions/arbiter-policy/crates/arbiter" }
+converge-ferrox-solver = { path = "../../../mosaic-extensions/ferrox-solvers/crates/ferrox" }
+converge-soter-smt = { path = "../../../mosaic-extensions/soter-smt/crates/soter" }
+converge-manifold-adapters = { path = "../../../mosaic-extensions/manifold-adapters/crates/manifold" }
+converge-embassy-pack = { path = "../../../mosaic-extensions/embassy-ports/crates/pack" }
+converge-fuzzy-inference = { path = "../../../mosaic-extensions/prism-analytics/crates/fuzzy" }
+organism-pack = { path = "../../../bedrock-platform/organism/crates/pack" }
+organism-runtime = { path = "../../../bedrock-platform/organism/crates/runtime" }
+organism-intent = { path = "../../../bedrock-platform/organism/crates/intent" }
+organism-planning = { path = "../../../bedrock-platform/organism/crates/planning" }
+organism-adversarial = { path = "../../../bedrock-platform/organism/crates/adversarial" }
+organism-learning = { path = "../../../bedrock-platform/organism/crates/learning" }
+organism-simulation = { path = "../../../bedrock-platform/organism/crates/simulation" }
+organism-intelligence = { path = "../../../bedrock-platform/organism/crates/intelligence" }
+organism-dynamics = { path = "../../../bedrock-platform/organism/crates/dynamics" }
+organism-catalog = { path = "../../../bedrock-platform/organism/crates/catalog" }
+axiom-truth = { path = "../../../bedrock-platform/axiom" }
+commerce-rails-stripe = { path = "../../../commerce-rails/crates/commerce-rails-stripe" }

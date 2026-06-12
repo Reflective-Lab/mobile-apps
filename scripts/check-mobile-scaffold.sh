@@ -4,6 +4,7 @@ set -euo pipefail
 required_files=(
   "apps/marquee/quorum-sense/fixtures/field-signal-capture.v1.json"
   "schemas/quorum-mobile.udl"
+  "crates/mobile-ffi/src/quorum_mobile.udl"
   "schemas/quorum-mobile-workflow-v1.md"
   "apps/marquee/quorum-sense/ios/QuorumMobileIOS/Package.swift"
   "apps/marquee/quorum-sense/ios/QuorumMobileIOS/Sources/QuorumMobileIOS/Views/SignalCaptureView.swift"
@@ -20,6 +21,13 @@ for file in "${required_files[@]}"; do
     exit 1
   }
 done
+
+# schemas/quorum-mobile.udl is the canonical contract doc; the compiled copy
+# read by crates/mobile-ffi/build.rs must stay byte-identical.
+cmp -s schemas/quorum-mobile.udl crates/mobile-ffi/src/quorum_mobile.udl || {
+  echo "schemas/quorum-mobile.udl and crates/mobile-ffi/src/quorum_mobile.udl have drifted apart" >&2
+  exit 1
+}
 
 grep -q '"id": "quorum.field_signal_capture.v1"' \
   apps/marquee/quorum-sense/fixtures/field-signal-capture.v1.json

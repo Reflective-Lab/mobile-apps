@@ -1,0 +1,28 @@
+[package]
+name = "spike-inkling-mobile"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+# The canonical inkling-notes app crate, reused directly.
+#
+# Feature finding (2026-06-12): `default-features = false` alone does NOT
+# compile — capture.rs's `#[cfg(not(feature = "social"))]` arm calls into the
+# `web` module, which only exists with the `web` feature. The minimal
+# compiling configuration is therefore no defaults + `web`, which drops
+# `social` but keeps reqwest in the tree. See the spike README for the
+# footprint consequences.
+notes = { path = "../../../../../studio-apps/inkling-notes/crates/notes", default-features = false, features = ["web"] }
+
+# The canonical vault engine that inkling-notes itself writes through.
+# With no features this is serde + chrono + thiserror only — the
+# mobile-clean layer. Resolves to the local platform head via the
+# [patch.crates-io] entry in the workspace Cargo.toml.
+organism-notes = "1.9.3"
+
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[dev-dependencies]
+serde_json = "1"
