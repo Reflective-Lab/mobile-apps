@@ -8,6 +8,8 @@ Converge placeholders.
 
 - Read `README.md`.
 - Read `docs/adr/0001-native-swift-kotlin-shared-rust-core.md`.
+- Read `docs/adr/0002-mobile-platform-boundary.md` before scoping device vs
+  server placement for any product mobile companion.
 - When working on a product app, read the corresponding app source repo
   instructions under `../marquee-apps/` or `../studio-apps/` before importing
   domain assumptions.

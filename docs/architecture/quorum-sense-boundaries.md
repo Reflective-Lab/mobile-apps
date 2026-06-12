@@ -153,6 +153,8 @@ domain.
 - `native-ai-rust-core.md` — the general native vs Rust boundary rule.
 - `mobile-apps/docs/adr/0001-native-swift-kotlin-shared-rust-core.md` — the
   ADR that established the native-first direction.
+- `mobile-apps/docs/adr/0002-mobile-platform-boundary.md` — portfolio placement
+  rule; this doc is the Quorum reference instance.
 - `marquee-apps/quorum-sense/CAPABILITIES.md` — what Quorum owns vs consumes
   from the platform; this doc extends that table to the mobile surface.
 - `marquee-apps/quorum-sense/MILESTONES.md` — current milestone state; v1

@@ -194,6 +194,7 @@ voice/text/photo input
 
 See:
 
+- `docs/adr/0002-mobile-platform-boundary.md` — device vs server authority
 - `apps/marquee/quorum-sense/fixtures/field-signal-capture.v1.json`
 - `schemas/quorum-mobile.udl`
 - `docs/architecture/quorum-sense-boundaries.md`
