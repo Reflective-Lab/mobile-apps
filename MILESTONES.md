@@ -3,8 +3,9 @@
 Two tracks. Product logic for Quorum stays canonical in
 `../marquee-apps/quorum-sense` through marquee-apps v1. The mobile workspace may
 carry Quorum shell scaffolds, fixtures, and bridge contracts so the platform
-foundation can advance without forking the Quorum domain. Real product scope is
-still gated by `docs/architecture/quorum-sense-boundaries.md`.
+foundation can advance without forking the Quorum domain. Real product scope is still gated by
+`docs/adr/0002-mobile-platform-boundary.md` and
+`docs/architecture/quorum-sense-boundaries.md`.
 
 ## M1 — Platform foundation: build + CI + simulators (due 2026-06-30)
 
