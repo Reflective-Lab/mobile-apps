@@ -1,5 +1,14 @@
 import Foundation
 
+/// Raised when the Rust core returns a value this app build cannot map into a
+/// domain type (a core/app version skew). Distinct from the generated
+/// `QuorumError`, which the FFI functions themselves throw when the *core*
+/// rejects input.
+public enum CoreBridgeError: Error {
+    case unrecognizedCoreValue(field: String, value: String)
+    case confidenceOutOfRange(Float)
+}
+
 /// Production `QuorumCoreBridge` backed by the Rust core through UniFFI.
 ///
 /// The generated bindings (`quorumDraftFieldSignal`, `FfiQuorumSignalDraft`,
@@ -33,20 +42,24 @@ public struct QuorumCoreBridgeFFI: QuorumCoreBridge {
 
     public func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
         let event = try quorumAppendConsentedSignal(draft: Self.ffiDraft(draft))
-        return QuorumAppendEvent(
-            workflowId: event.workflowId,
-            eventType: event.eventType,
-            draftId: event.draftId,
-            inquiryThreadId: event.inquiryThreadId,
-            syncState: event.syncState
-        )
+        return try Self.domainEvent(event)
     }
 
     // MARK: - Boundary mapping (FFI wire DTO <-> Swift domain)
+    // The single place wire strings/floats become domain types and back,
+    // mirroring the Rust boundary in quorum-ffi/src/lib.rs.
 
     private static func domainDraft(_ ffi: FfiQuorumSignalDraft) throws -> FieldSignalDraft {
         guard let modality = SignalModality(rawValue: ffi.modality) else {
-            throw QuorumError.InvalidModality(value: ffi.modality)
+            throw CoreBridgeError.unrecognizedCoreValue(field: "modality", value: ffi.modality)
+        }
+        guard let consentState = ConsentState(rawValue: ffi.consentState) else {
+            throw CoreBridgeError.unrecognizedCoreValue(
+                field: "consentState", value: ffi.consentState
+            )
+        }
+        guard let confidence = Confidence(ffi.confidence) else {
+            throw CoreBridgeError.confidenceOutOfRange(ffi.confidence)
         }
         return FieldSignalDraft(
             workflowId: ffi.workflowId,
@@ -57,8 +70,24 @@ public struct QuorumCoreBridgeFFI: QuorumCoreBridge {
             summary: ffi.summary,
             latentNeed: ffi.latentNeed,
             contradiction: ffi.contradiction,
-            confidence: ffi.confidence,
-            consentState: ffi.consentState
+            confidence: confidence,
+            consentState: consentState
+        )
+    }
+
+    private static func domainEvent(_ ffi: FfiQuorumAppendEvent) throws -> QuorumAppendEvent {
+        guard let eventType = AppendEventType(rawValue: ffi.eventType) else {
+            throw CoreBridgeError.unrecognizedCoreValue(field: "eventType", value: ffi.eventType)
+        }
+        guard let syncState = SyncState(rawValue: ffi.syncState) else {
+            throw CoreBridgeError.unrecognizedCoreValue(field: "syncState", value: ffi.syncState)
+        }
+        return QuorumAppendEvent(
+            workflowId: ffi.workflowId,
+            eventType: eventType,
+            draftId: ffi.draftId,
+            inquiryThreadId: ffi.inquiryThreadId,
+            syncState: syncState
         )
     }
 
@@ -72,8 +101,8 @@ public struct QuorumCoreBridgeFFI: QuorumCoreBridge {
             summary: draft.summary,
             latentNeed: draft.latentNeed,
             contradiction: draft.contradiction,
-            confidence: draft.confidence,
-            consentState: draft.consentState
+            confidence: draft.confidence.value,
+            consentState: draft.consentState.rawValue
         )
     }
 }

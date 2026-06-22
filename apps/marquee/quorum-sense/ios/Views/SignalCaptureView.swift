@@ -48,8 +48,8 @@ public struct SignalCaptureView: View {
             if let draft {
                 Section("Draft") {
                     LabeledContent("Workflow", value: draft.workflowId)
-                    LabeledContent("Consent", value: draft.consentState)
-                    LabeledContent("Confidence", value: String(format: "%.2f", draft.confidence))
+                    LabeledContent("Consent", value: draft.consentState.label)
+                    LabeledContent("Confidence", value: String(format: "%.2f", draft.confidence.value))
                     Text(draft.summary)
                     Text(draft.contradiction)
                         .font(.footnote)
@@ -71,8 +71,8 @@ public struct SignalCaptureView: View {
 
             if let appendEvent {
                 Section("Queued Event") {
-                    LabeledContent("Type", value: appendEvent.eventType)
-                    LabeledContent("Sync", value: appendEvent.syncState)
+                    LabeledContent("Type", value: appendEvent.eventType.label)
+                    LabeledContent("Sync", value: appendEvent.syncState.label)
                 }
             }
 

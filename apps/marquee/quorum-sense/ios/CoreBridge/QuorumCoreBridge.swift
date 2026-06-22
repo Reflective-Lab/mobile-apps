@@ -34,18 +34,18 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
             summary: String(rawCapture.trimmingCharacters(in: .whitespacesAndNewlines).prefix(96)),
             latentNeed: "needs earlier visibility into organizational ambiguity",
             contradiction: "participants report alignment while surfacing unresolved tension",
-            confidence: 0.67,
-            consentState: "pending"
+            confidence: Confidence(literal: 0.67),
+            consentState: .pending
         )
     }
 
     public func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
         QuorumAppendEvent(
             workflowId: draft.workflowId,
-            eventType: "SignalDraftConsented",
+            eventType: .signalDraftConsented,
             draftId: draft.draftId,
             inquiryThreadId: draft.inquiryThreadId,
-            syncState: "queued_for_sync"
+            syncState: .queuedForSync
         )
     }
 }

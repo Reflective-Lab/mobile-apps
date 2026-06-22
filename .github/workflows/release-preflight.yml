@@ -48,13 +48,33 @@ jobs:
           path: reflective-mobile-scaffold.tar.gz
           if-no-files-found: error
 
-  ios-shell:
-    name: Quorum iOS Shell
+  ios-product:
+    name: Quorum iOS Product App
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build SwiftUI package
-        working-directory: apps/marquee/quorum-sense/ios/QuorumMobileIOS
-        run: swift build
+      - name: Install xcodegen + just
+        run: brew install xcodegen just
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install iOS rustup targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Build Quorum FFI and generate project
+        run: just quorum-ios-gen
+
+      - name: Build Quorum iOS app
+        working-directory: apps/marquee/quorum-sense/ios
+        run: |
+          xcodebuild \
+            -scheme QuorumMobile \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            build
