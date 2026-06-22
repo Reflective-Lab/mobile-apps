@@ -32,9 +32,9 @@ import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
 import se.reflective.quorum.corebridge.QuorumCoreBridge
 
 @Composable
-fun QuorumMobileApp() {
+fun QuorumMobileApp(bridge: QuorumCoreBridge = PreviewQuorumCoreBridge()) {
     MaterialTheme {
-        SignalCaptureScreen()
+        SignalCaptureScreen(bridge = bridge)
     }
 }
 
@@ -108,8 +108,8 @@ fun SignalCaptureScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text("Queued Event", style = MaterialTheme.typography.titleMedium)
-                        Text(event.eventType)
-                        Text(event.syncState)
+                        Text(event.eventType.label)
+                        Text(event.syncState.label)
                     }
                 }
             }
@@ -151,8 +151,8 @@ private fun DraftCard(
         ) {
             Text("Draft", style = MaterialTheme.typography.titleMedium)
             Text(draft.summary)
-            Text("Consent: ${draft.consentState}")
-            Text("Confidence: ${"%.2f".format(draft.confidence)}")
+            Text("Consent: ${draft.consentState.label}")
+            Text("Confidence: ${"%.2f".format(draft.confidence.value)}")
             Text(draft.contradiction, style = MaterialTheme.typography.bodySmall)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

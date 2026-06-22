@@ -1,8 +1,12 @@
 package se.reflective.quorum.corebridge
 
+import se.reflective.quorum.capture.AppendEventType
+import se.reflective.quorum.capture.Confidence
+import se.reflective.quorum.capture.ConsentState
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
 import se.reflective.quorum.capture.SignalModality
+import se.reflective.quorum.capture.SyncState
 
 interface QuorumCoreBridge {
     suspend fun workflowId(): String
@@ -34,18 +38,18 @@ class PreviewQuorumCoreBridge : QuorumCoreBridge {
             summary = trimmed.take(96),
             latentNeed = "needs earlier visibility into organizational ambiguity",
             contradiction = "participants report alignment while surfacing unresolved tension",
-            confidence = 0.67f,
-            consentState = "pending",
+            confidence = Confidence.literal(0.67f),
+            consentState = ConsentState.PENDING,
         )
     }
 
     override suspend fun appendConsentedSignal(draft: FieldSignalDraft): QuorumAppendEvent =
         QuorumAppendEvent(
             workflowId = draft.workflowId,
-            eventType = "SignalDraftConsented",
+            eventType = AppendEventType.SIGNAL_DRAFT_CONSENTED,
             draftId = draft.draftId,
             inquiryThreadId = draft.inquiryThreadId,
-            syncState = "queued_for_sync",
+            syncState = SyncState.QUEUED_FOR_SYNC,
         )
 }
 

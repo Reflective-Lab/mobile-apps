@@ -14,7 +14,13 @@ fmt-check:
 lint:
     cargo clippy --workspace --all-targets -- -D warnings
 
+# Run the workspace tests with cargo-nextest (faster, process-isolated runner).
+# Install once: cargo install cargo-nextest --locked (or https://get.nexte.st).
 test:
+    cargo nextest run --workspace
+
+# Fallback runner (also covers doctests, which nextest skips).
+test-cargo:
     cargo test --workspace --locked
 
 doc:
@@ -88,6 +94,18 @@ quorum-ios-archive: quorum-ios-gen
       -destination 'generic/platform=iOS' \
       -archivePath build/QuorumMobile.xcarchive \
       archive
+
+# --- Quorum Android product app (apps/marquee/quorum-sense/android) ---
+
+# Build the quorum-ffi Rust crate into the app's jniLibs (per ABI) and generate
+# Kotlin bindings under uniffi/quorum_ffi/ (both gitignored). Must run before the
+# Gradle build. Requires ANDROID_NDK_HOME + cargo-ndk.
+quorum-android-uniffi:
+    bash scripts/build-mobile-ffi-android.sh
+
+# Build the product app (runs against the real Rust core via QuorumCoreBridgeFFI).
+quorum-android-build: quorum-android-uniffi
+    cd apps/marquee/quorum-sense/android && ./gradlew :app:assembleDebug
 
 # --- Android native shell template ---
 
