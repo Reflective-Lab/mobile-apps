@@ -10,6 +10,8 @@ Converge placeholders.
 - Read `docs/adr/0001-native-swift-kotlin-shared-rust-core.md`.
 - Read `docs/adr/0002-mobile-platform-boundary.md` before scoping device vs
   server placement for any product mobile companion.
+- Read `docs/adr/0003-responsiveness-and-snapshot-consistency.md` before
+  designing any view/bridge/core interaction in a real-time app.
 - When working on a product app, read the corresponding app source repo
   instructions under `../marquee-apps/` or `../studio-apps/` before importing
   domain assumptions.
@@ -60,6 +62,37 @@ validating them at runtime.
 - Keep the build strict and loud: `cargo clippy -- -D warnings` is the gate
   (see `just ci`); fix warnings, don't silence them. A failure caught by the
   compiler or CI is one fewer failure in a user's hands.
+
+## Responsiveness & Consistency
+
+Several apps are real-time collaboration (humans + on-device AI + a session
+across other devices), so two properties are hard invariants, not goals. See
+`docs/adr/0003-responsiveness-and-snapshot-consistency.md` for the full contract.
+
+- **Responsiveness:** the interaction loop (input → next frame) is *never*
+  coupled to unbounded-latency work — AI inference, network, disk, or merge.
+  The Rust core runs as an off-main, actor-isolated component; the UI `await`s
+  it. A `@MainActor` bridge calling synchronous FFI is forbidden — `async`
+  without offloading still blocks the main thread and freezes the UI.
+- **Snapshot consistency:** the view is a pure projection of immutable,
+  versioned, internally-consistent snapshots — swapped atomically, applied
+  monotonically by version. The UI never reads mutable shared state and can
+  never observe a torn or half-merged world.
+- **One linearization point:** all mutation (local user, local AI, remote peers)
+  commits through the core in causal order; compute is parallel/off-main, the
+  commit is serialized, each commit emits one coherent snapshot.
+- **Intents in, events out:** UI sends fire-and-forget intents that return
+  immediately; updates arrive only over a snapshot stream (UniFFI async +
+  callback interface → Swift `AsyncStream`, Kotlin `Flow`). Never poll, never
+  block on a result.
+- **Cancellable and bounded:** superseded AI/network work is cancelled, input is
+  coalesced, queues are bounded — degrade by shedding/merging stale work, never
+  by stalling. On-device AI runs off the interaction path, streams partial
+  results, and is cancellable.
+- **Correct by type:** snapshots are coherent because the domain types make
+  inconsistent states unrepresentable (above) — the core may only emit a
+  type-valid snapshot. This is why the type-safety rules are load-bearing, not
+  cosmetic.
 
 ## Commands
 

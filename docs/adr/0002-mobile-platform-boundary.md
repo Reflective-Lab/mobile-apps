@@ -4,8 +4,9 @@
 - Status: Accepted
 - Supersedes: informal placement notes in `docs/architecture/mobile-shared-core-study.md`
   (study retained as evidence and spike index)
-- Related: ADR 0001, `docs/architecture/native-ai-rust-core.md`,
-  `docs/architecture/quorum-sense-boundaries.md`
+- Related: ADR 0001, ADR 0003, `docs/architecture/native-ai-rust-core.md`,
+  `docs/architecture/quorum-sense-boundaries.md`,
+  `docs/architecture/quorum-ios-native-ai-collaboration-report.md`
 
 ## Decision
 
