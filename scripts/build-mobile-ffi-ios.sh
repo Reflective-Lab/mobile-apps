@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the reflective-mobile-ffi Rust crate for iOS device + simulator,
+# Build the quorum-ffi Rust crate for iOS device + simulator,
 # generate Swift bindings, and assemble an XCFramework consumed by
 # apps/marquee/quorum-sense/ios/.
 #
@@ -11,11 +11,11 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
-CRATE=reflective-mobile-ffi
-LIB_BASENAME=reflective_mobile_ffi
+CRATE=quorum-ffi
+LIB_BASENAME=quorum_ffi
 LIB_FILE="lib${LIB_BASENAME}.a"
-FRAMEWORK=ReflectiveMobileFFI
-UDL=crates/mobile-ffi/src/quorum_mobile.udl
+FRAMEWORK=QuorumFFI
+UDL=apps/marquee/quorum-sense/ffi/src/quorum_mobile.udl
 
 DEVICE=aarch64-apple-ios
 SIM_ARM=aarch64-apple-ios-sim

@@ -1,4 +1,4 @@
-package se.reflective.quorum.mobile.ui
+package se.reflective.quorum.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,11 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import se.reflective.quorum.mobile.capture.FieldSignalDraft
-import se.reflective.quorum.mobile.capture.QuorumAppendEvent
-import se.reflective.quorum.mobile.capture.SignalModality
-import se.reflective.quorum.mobile.corebridge.PreviewQuorumCoreBridge
-import se.reflective.quorum.mobile.corebridge.QuorumCoreBridge
+import se.reflective.quorum.capture.FieldSignalDraft
+import se.reflective.quorum.capture.QuorumAppendEvent
+import se.reflective.quorum.capture.SignalModality
+import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
+import se.reflective.quorum.corebridge.QuorumCoreBridge
 
 @Composable
 fun QuorumMobileApp() {

@@ -4,16 +4,24 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Per-app identity. Override from the CLI or scripts/app-config.sh:
+//   ./gradlew :app:assembleDebug -PappSlug=atlas -PappName=Atlas
+// `namespace` stays constant (shared shell code package); only the installed
+// applicationId + display name vary across the fleet.
+val appSlug = (project.findProperty("appSlug") as String?) ?: "quorum"
+val appName = (project.findProperty("appName") as String?) ?: "Quorum"
+
 android {
-    namespace = "dev.reflective.shell"
+    namespace = "se.reflective.shell"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.reflective.shell"
+        applicationId = "se.reflective.$appSlug"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        resValue("string", "app_name", appName)
     }
 
     compileOptions {

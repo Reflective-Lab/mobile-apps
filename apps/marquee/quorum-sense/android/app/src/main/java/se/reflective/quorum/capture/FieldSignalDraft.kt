@@ -1,4 +1,4 @@
-package se.reflective.quorum.mobile.capture
+package se.reflective.quorum.capture
 
 enum class SignalModality(val wireName: String, val label: String) {
     TEXT("text", "Text"),

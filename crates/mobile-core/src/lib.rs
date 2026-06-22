@@ -72,22 +72,10 @@ impl MobileAppSpec {
     }
 
     pub fn requires_native_shells(&self) -> bool {
-        self.platform_runtimes.iter().any(|runtime| {
-            matches!(
-                runtime,
-                PlatformRuntime::IosFoundationModels
-                    | PlatformRuntime::IosCoreMl
-                    | PlatformRuntime::IosVision
-                    | PlatformRuntime::IosSpeech
-                    | PlatformRuntime::IosAvFoundation
-                    | PlatformRuntime::AndroidGeminiNano
-                    | PlatformRuntime::AndroidLiteRt
-                    | PlatformRuntime::AndroidMlKit
-                    | PlatformRuntime::AndroidMediaPipe
-                    | PlatformRuntime::AndroidCameraX
-                    | PlatformRuntime::AndroidMedia3
-            )
-        })
+        // Every `PlatformRuntime` is a native (iOS/Android) AI runtime, so any
+        // declared runtime means this app needs native shells. Stated as
+        // non-emptiness so a newly added runtime can't silently slip through.
+        !self.platform_runtimes.is_empty()
     }
 }
 

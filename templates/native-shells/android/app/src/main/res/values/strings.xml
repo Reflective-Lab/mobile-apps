@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Reflective Shell</string>
+    <!-- app_name is generated per-app via resValue() in app/build.gradle.kts
+         (driven by -PappName / scripts/app-config.sh). Do not redeclare it
+         here or the build fails with a duplicate resource. -->
 </resources>

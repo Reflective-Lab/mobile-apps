@@ -1,4 +1,4 @@
-package dev.reflective.shell
+package se.reflective.shell
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

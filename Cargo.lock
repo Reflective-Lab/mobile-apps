@@ -356,6 +356,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "quorum-ffi"
+version = "0.1.0"
+dependencies = [
+ "reflective-mobile-ai",
+ "reflective-mobile-core",
+ "thiserror",
+ "uniffi",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -380,15 +390,6 @@ dependencies = [
 [[package]]
 name = "reflective-mobile-core"
 version = "0.1.0"
-
-[[package]]
-name = "reflective-mobile-ffi"
-version = "0.1.0"
-dependencies = [
- "reflective-mobile-ai",
- "reflective-mobile-core",
- "uniffi",
-]
 
 [[package]]
 name = "reflective-shell-ffi"

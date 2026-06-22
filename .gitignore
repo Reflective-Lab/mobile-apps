@@ -10,3 +10,9 @@ archive/legacy-placeholders/converge-android/
 archive/legacy-placeholders/converge-ios/
 archive/legacy-placeholders/wolfgang-android/
 archive/legacy-placeholders/wolfgang-ios/
+
+# Secrets — never commit signing keys (APNs .p8, etc.)
+*.p8
+*.p12
+*.mobileprovision
+secrets/

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "se.reflective.quorum.mobile"
+    namespace = "se.reflective.quorum"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "se.reflective.quorum.mobile"
+        applicationId = "se.reflective.quorum"
         minSdk = 28
         targetSdk = 35
         versionCode = 1

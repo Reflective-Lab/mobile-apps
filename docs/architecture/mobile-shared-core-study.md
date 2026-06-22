@@ -47,7 +47,7 @@ Standalone workspaces under `spikes/` (excluded from CI — cross-repo path deps
 - `spikes/inkling-notes-mobile/` — reuses vault capture + navigation index;
   documents upstream fixes needed in `studio-apps/inkling-notes`.
 
-Product UniFFI pattern: `schemas/quorum-mobile.udl` → `crates/mobile-ffi`.
+Product UniFFI pattern: `schemas/quorum-mobile.udl` → `apps/marquee/quorum-sense/ffi`.
 
 ## Cross-references
 

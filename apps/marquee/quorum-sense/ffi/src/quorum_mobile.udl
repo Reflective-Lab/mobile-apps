@@ -1,13 +1,25 @@
 // Quorum mobile UniFFI contract (workflow: quorum.field_signal_capture.v1).
 //
 // Source of truth: schemas/quorum-mobile.udl (this file, the canonical
-// contract doc). Compiled copy: crates/mobile-ffi/src/quorum_mobile.udl,
-// read by crates/mobile-ffi/build.rs. scripts/check-mobile-scaffold.sh
+// contract doc). Compiled copy: apps/marquee/quorum-sense/ffi/src/quorum_mobile.udl,
+// read by apps/marquee/quorum-sense/ffi/build.rs. scripts/check-mobile-scaffold.sh
 // requires the two files to stay byte-identical.
 //
-// The namespace matches the [lib] name of crates/mobile-ffi
-// (reflective_mobile_ffi) so the generated Swift/Kotlin bindings resolve
+// The namespace matches the [lib] name of apps/marquee/quorum-sense/ffi
+// (quorum_ffi) so the generated Swift/Kotlin bindings resolve
 // the native library under the same name, mirroring crates/shell-ffi.
+
+// Typed boundary error: raw foreign strings/floats that don't map to a domain
+// value surface as one of these (carrying the offending value) instead of a
+// silent default. Mapping happens only in the FFI layer, never in domain code.
+[Error]
+interface QuorumError {
+    InvalidModality(string value);
+    InvalidConsentState(string value);
+    ConfidenceOutOfRange(f32 value);
+    UnsupportedPlatform(string value);
+    UnsupportedTask(string value);
+};
 
 dictionary FfiAppSummary {
     string slug;
@@ -38,19 +50,22 @@ dictionary FfiQuorumAppendEvent {
     string sync_state;
 };
 
-namespace reflective_mobile_ffi {
+namespace quorum_ffi {
     sequence<FfiAppSummary> mobile_portfolio();
 
+    [Throws=QuorumError]
     string ai_execution_home(string platform, string task);
 
     string quorum_field_signal_workflow_id();
 
+    [Throws=QuorumError]
     FfiQuorumSignalDraft quorum_draft_field_signal(
         string inquiry_thread_id,
         string modality,
         string raw_capture
     );
 
+    [Throws=QuorumError]
     FfiQuorumAppendEvent quorum_append_consented_signal(
         FfiQuorumSignalDraft draft
     );

@@ -1,8 +1,8 @@
-package se.reflective.quorum.mobile.corebridge
+package se.reflective.quorum.corebridge
 
-import se.reflective.quorum.mobile.capture.FieldSignalDraft
-import se.reflective.quorum.mobile.capture.QuorumAppendEvent
-import se.reflective.quorum.mobile.capture.SignalModality
+import se.reflective.quorum.capture.FieldSignalDraft
+import se.reflective.quorum.capture.QuorumAppendEvent
+import se.reflective.quorum.capture.SignalModality
 
 interface QuorumCoreBridge {
     suspend fun workflowId(): String

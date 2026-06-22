@@ -1,6 +1,6 @@
-package se.reflective.quorum.mobile.platformai
+package se.reflective.quorum.platformai
 
-import se.reflective.quorum.mobile.capture.SignalModality
+import se.reflective.quorum.capture.SignalModality
 
 data class CapturedSignalInput(
     val modality: SignalModality,
