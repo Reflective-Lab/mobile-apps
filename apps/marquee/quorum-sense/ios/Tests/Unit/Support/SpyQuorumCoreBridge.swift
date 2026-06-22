@@ -1,0 +1,84 @@
+import Foundation
+@testable import QuorumMobile
+
+/// Hand-written spy/stub for `QuorumCoreBridge`.
+///
+/// Records every call (for interaction assertions) and returns caller-configured
+/// stubbed results, so view/consumer logic can be tested without the Rust core.
+@MainActor
+final class SpyQuorumCoreBridge: QuorumCoreBridge {
+    enum TestError: Error { case unstubbed, boom }
+
+    struct DraftCall: Equatable {
+        let inquiryThreadId: String
+        let modality: SignalModality
+        let rawCapture: String
+    }
+
+    private(set) var draftCalls: [DraftCall] = []
+    private(set) var appendCalls: [FieldSignalDraft] = []
+    private(set) var workflowIdCallCount = 0
+
+    var workflowIdStub = "quorum.field_signal_capture.v1"
+    var draftStub: Result<FieldSignalDraft, Error> = .failure(TestError.unstubbed)
+    var appendStub: Result<QuorumAppendEvent, Error> = .failure(TestError.unstubbed)
+
+    func workflowId() async -> String {
+        workflowIdCallCount += 1
+        return workflowIdStub
+    }
+
+    func draftFieldSignal(
+        inquiryThreadId: String,
+        modality: SignalModality,
+        rawCapture: String
+    ) async throws -> FieldSignalDraft {
+        draftCalls.append(DraftCall(inquiryThreadId: inquiryThreadId, modality: modality, rawCapture: rawCapture))
+        return try draftStub.get()
+    }
+
+    func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
+        appendCalls.append(draft)
+        return try appendStub.get()
+    }
+}
+
+/// Deterministic SplitMix64 RNG so property tests are reproducible across runs.
+struct SeededRNG: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        state = seed == 0 ? 0x9E37_79B9_7F4A_7C15 : seed
+    }
+
+    mutating func next() -> UInt64 {
+        state = state &+ 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
+}
+
+func randomWireLikeString(_ rng: inout SeededRNG) -> String {
+    let length = Int(rng.next() % 12)
+    let alphabet = Array("abcdefghijklmnopqrstuvwxyz_")
+    return String((0..<length).map { _ in alphabet[Int(rng.next() % UInt64(alphabet.count))] })
+}
+
+/// Fixture draft used by snapshot and boundary tests.
+@MainActor
+func fixtureDraft() -> FieldSignalDraft {
+    FieldSignalDraft(
+        workflowId: "quorum.field_signal_capture.v1",
+        draftId: "draft:inq_mobile_launch_risks:field-signal-v1",
+        inquiryThreadId: "inq_mobile_launch_risks",
+        modality: .voiceTranscript,
+        rawCapture: "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
+        summary: "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
+        latentNeed: "needs earlier visibility into organizational ambiguity",
+        contradiction: "participants report alignment while surfacing unresolved tension",
+        confidence: Confidence(literal: 0.67),
+        consentState: .pending
+    )
+}

@@ -24,3 +24,6 @@ uniffi = { version = "0.31.1", features = ["cli"] }
 
 [build-dependencies]
 uniffi = { version = "0.31.1", features = ["build"] }
+
+[dev-dependencies]
+proptest = "1"

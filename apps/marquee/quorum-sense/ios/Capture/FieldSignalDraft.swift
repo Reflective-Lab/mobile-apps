@@ -1,6 +1,6 @@
 import Foundation
 
-public enum SignalModality: String, CaseIterable, Identifiable {
+public enum SignalModality: String, CaseIterable, Identifiable, Sendable {
     case text
     case voiceTranscript = "voice_transcript"
     case imageOcrText = "image_ocr_text"
@@ -18,7 +18,7 @@ public enum SignalModality: String, CaseIterable, Identifiable {
 
 /// Whether a captured signal has cleared consent for sync. Mirrors the Rust
 /// `ConsentState`; raw values are the wire contract from the core.
-public enum ConsentState: String {
+public enum ConsentState: String, Sendable {
     case pending
     case consented
 
@@ -31,7 +31,7 @@ public enum ConsentState: String {
 }
 
 /// The kind of event emitted when a draft is appended. Mirrors Rust `AppendEventType`.
-public enum AppendEventType: String {
+public enum AppendEventType: String, Sendable {
     case signalDraftConsented = "SignalDraftConsented"
 
     public var label: String {
@@ -42,7 +42,7 @@ public enum AppendEventType: String {
 }
 
 /// Where an appended event sits in the sync pipeline. Mirrors Rust `SyncState`.
-public enum SyncState: String {
+public enum SyncState: String, Sendable {
     case queuedForSync = "queued_for_sync"
 
     public var label: String {
@@ -53,7 +53,7 @@ public enum SyncState: String {
 }
 
 /// A model confidence score constrained to `0...1`, mirroring Rust `Confidence`.
-public struct Confidence: Equatable {
+public struct Confidence: Equatable, Sendable {
     public let value: Float
 
     /// Validated construction from untrusted input (e.g. core output).
@@ -69,7 +69,7 @@ public struct Confidence: Equatable {
     }
 }
 
-public struct FieldSignalDraft: Equatable, Identifiable {
+public struct FieldSignalDraft: Equatable, Identifiable, Sendable {
     public let workflowId: String
     public let draftId: String
     public let inquiryThreadId: String
@@ -84,7 +84,7 @@ public struct FieldSignalDraft: Equatable, Identifiable {
     public var id: String { draftId }
 }
 
-public struct QuorumAppendEvent: Equatable {
+public struct QuorumAppendEvent: Equatable, Sendable {
     public let workflowId: String
     public let eventType: AppendEventType
     public let draftId: String

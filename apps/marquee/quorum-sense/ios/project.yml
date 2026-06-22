@@ -12,6 +12,31 @@ options:
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
+# Signing applied project-wide so the app and both test bundles inherit it.
+# Team ID is the Apple Developer account; automatic signing lets Xcode manage
+# the distribution profile (archive/CI must pass `-allowProvisioningUpdates`).
+settings:
+  base:
+    DEVELOPMENT_TEAM: LKXXUTCTZN
+    CODE_SIGN_STYLE: Automatic
+packages:
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.17.0"
+schemes:
+  QuorumMobile:
+    build:
+      targets:
+        QuorumMobile: all
+        QuorumMobileTests: [test]
+        QuorumMobileUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - QuorumMobileTests
+        - QuorumMobileUITests
 targets:
   QuorumMobile:
     type: application
@@ -51,3 +76,32 @@ targets:
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe a captured voice signal on device.
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+
+  # Unit/logic + boundary tests. Swift Testing (@Test/#expect) is the primary
+  # framework; SnapshotTesting provides golden coverage. Hosted in the app so
+  # tests can @testable import QuorumMobile and reach the real FFI adapter.
+  QuorumMobileTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/Unit
+    dependencies:
+      - target: QuorumMobile
+      - package: SnapshotTesting
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+
+  # End-to-end UI automation. XCUITest is XCTest-based and drives the running app.
+  QuorumMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - Tests/UI
+    dependencies:
+      - target: QuorumMobile
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES

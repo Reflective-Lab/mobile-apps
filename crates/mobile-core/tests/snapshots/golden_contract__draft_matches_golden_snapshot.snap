@@ -1,0 +1,24 @@
+---
+source: crates/mobile-core/tests/golden_contract.rs
+expression: draft_from_fixture_input()
+---
+QuorumSignalDraft {
+    workflow_id: WorkflowId(
+        "quorum.field_signal_capture.v1",
+    ),
+    draft_id: DraftId(
+        "draft:inq_mobile_launch_risks:field-signal-v1",
+    ),
+    inquiry_thread_id: InquiryThreadId(
+        "inq_mobile_launch_risks",
+    ),
+    modality: VoiceTranscript,
+    raw_capture: "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
+    summary: "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
+    latent_need: "needs earlier visibility into organizational ambiguity",
+    contradiction: "participants report alignment while surfacing unresolved tension",
+    confidence: Confidence(
+        0.67,
+    ),
+    consent_state: Pending,
+}

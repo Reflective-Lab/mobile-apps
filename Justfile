@@ -86,13 +86,16 @@ quorum-ios-build device="iPhone 16": quorum-ios-gen
       -derivedDataPath build \
       build
 
-# Archive for distribution. Requires the Apple Distribution signing identity in
-# the login keychain and the App ID registered as se.reflective.quorum.
+# Archive for distribution. Signing is configured in project.yml
+# (DEVELOPMENT_TEAM + automatic); -allowProvisioningUpdates lets Xcode create or
+# download the distribution profile. Requires the App ID se.reflective.quorum and
+# a Distribution certificate in the login keychain / Apple account.
 quorum-ios-archive: quorum-ios-gen
     cd apps/marquee/quorum-sense/ios && xcodebuild \
       -scheme QuorumMobile \
       -destination 'generic/platform=iOS' \
       -archivePath build/QuorumMobile.xcarchive \
+      -allowProvisioningUpdates \
       archive
 
 # --- Quorum Android product app (apps/marquee/quorum-sense/android) ---
