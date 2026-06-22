@@ -184,7 +184,8 @@ pub fn draft_field_signal(
         raw_capture: raw_capture.to_owned(),
         summary,
         latent_need: "needs earlier visibility into organizational ambiguity".to_owned(),
-        contradiction: "participants report alignment while surfacing unresolved tension".to_owned(),
+        contradiction: "participants report alignment while surfacing unresolved tension"
+            .to_owned(),
         // Known-valid literal: constructed directly because the private field is
         // in scope here; external callers must go through `Confidence::new`.
         confidence: Confidence(0.67),

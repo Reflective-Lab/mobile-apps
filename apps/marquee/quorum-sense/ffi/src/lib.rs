@@ -140,12 +140,19 @@ fn to_ffi_draft(draft: &QuorumSignalDraft) -> FfiQuorumSignalDraft {
 }
 
 fn from_ffi_draft(draft: FfiQuorumSignalDraft) -> Result<QuorumSignalDraft, QuorumError> {
-    let modality = SignalModality::parse(&draft.modality)
-        .ok_or_else(|| QuorumError::InvalidModality { value: draft.modality.clone() })?;
-    let consent_state = ConsentState::parse(&draft.consent_state)
-        .ok_or_else(|| QuorumError::InvalidConsentState { value: draft.consent_state.clone() })?;
-    let confidence = Confidence::new(draft.confidence)
-        .ok_or(QuorumError::ConfidenceOutOfRange { value: draft.confidence })?;
+    let modality =
+        SignalModality::parse(&draft.modality).ok_or_else(|| QuorumError::InvalidModality {
+            value: draft.modality.clone(),
+        })?;
+    let consent_state = ConsentState::parse(&draft.consent_state).ok_or_else(|| {
+        QuorumError::InvalidConsentState {
+            value: draft.consent_state.clone(),
+        }
+    })?;
+    let confidence =
+        Confidence::new(draft.confidence).ok_or(QuorumError::ConfidenceOutOfRange {
+            value: draft.confidence,
+        })?;
 
     Ok(QuorumSignalDraft {
         workflow_id: WorkflowId::new(draft.workflow_id),
@@ -294,7 +301,10 @@ mod tests {
         let draft = fixture_draft();
 
         assert_eq!(draft.workflow_id, "quorum.field_signal_capture.v1");
-        assert_eq!(draft.draft_id, "draft:inq_mobile_launch_risks:field-signal-v1");
+        assert_eq!(
+            draft.draft_id,
+            "draft:inq_mobile_launch_risks:field-signal-v1"
+        );
         assert_eq!(draft.inquiry_thread_id, FIXTURE_INQUIRY_THREAD_ID);
         assert_eq!(draft.modality, "voice_transcript");
         assert_eq!(draft.raw_capture, FIXTURE_RAW_CAPTURE);

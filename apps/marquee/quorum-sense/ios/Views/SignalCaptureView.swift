@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 public struct SignalCaptureView: View {
     private let bridge: any QuorumCoreBridge
     private let inquiryThreadId = "inq_mobile_launch_risks"
@@ -8,6 +9,7 @@ public struct SignalCaptureView: View {
     @State private var rawCapture = "The sales team says rollout is fine, but support is seeing confusion in every pilot."
     @State private var draft: FieldSignalDraft?
     @State private var appendEvent: QuorumAppendEvent?
+    @State private var errorMessage: String?
 
     public init(bridge: any QuorumCoreBridge = PreviewQuorumCoreBridge()) {
         self.bridge = bridge
@@ -28,11 +30,17 @@ public struct SignalCaptureView: View {
                 Button("Create Draft") {
                     Task {
                         appendEvent = nil
-                        draft = await bridge.draftFieldSignal(
-                            inquiryThreadId: inquiryThreadId,
-                            modality: modality,
-                            rawCapture: rawCapture
-                        )
+                        errorMessage = nil
+                        do {
+                            draft = try await bridge.draftFieldSignal(
+                                inquiryThreadId: inquiryThreadId,
+                                modality: modality,
+                                rawCapture: rawCapture
+                            )
+                        } catch {
+                            draft = nil
+                            errorMessage = String(describing: error)
+                        }
                     }
                 }
             }
@@ -49,7 +57,13 @@ public struct SignalCaptureView: View {
 
                     Button("Consent And Queue") {
                         Task {
-                            appendEvent = await bridge.appendConsentedSignal(draft)
+                            errorMessage = nil
+                            do {
+                                appendEvent = try await bridge.appendConsentedSignal(draft)
+                            } catch {
+                                appendEvent = nil
+                                errorMessage = String(describing: error)
+                            }
                         }
                     }
                 }
@@ -59,6 +73,14 @@ public struct SignalCaptureView: View {
                 Section("Queued Event") {
                     LabeledContent("Type", value: appendEvent.eventType)
                     LabeledContent("Sync", value: appendEvent.syncState)
+                }
+            }
+
+            if let errorMessage {
+                Section("Error") {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
                 }
             }
         }

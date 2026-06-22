@@ -7,12 +7,14 @@ public protocol QuorumCoreBridge {
         inquiryThreadId: String,
         modality: SignalModality,
         rawCapture: String
-    ) async -> FieldSignalDraft
-    func appendConsentedSignal(_ draft: FieldSignalDraft) async -> QuorumAppendEvent
+    ) async throws -> FieldSignalDraft
+    func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent
 }
 
 public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
-    public init() {}
+    // nonisolated so it can be used as a default argument (evaluated off the
+    // main actor) even though QuorumCoreBridge is @MainActor-isolated.
+    public nonisolated init() {}
 
     public func workflowId() async -> String {
         "quorum.field_signal_capture.v1"
@@ -22,7 +24,7 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
         inquiryThreadId: String,
         modality: SignalModality,
         rawCapture: String
-    ) async -> FieldSignalDraft {
+    ) async throws -> FieldSignalDraft {
         FieldSignalDraft(
             workflowId: await workflowId(),
             draftId: "draft:\(inquiryThreadId):field-signal-v1",
@@ -37,7 +39,7 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
         )
     }
 
-    public func appendConsentedSignal(_ draft: FieldSignalDraft) async -> QuorumAppendEvent {
+    public func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
         QuorumAppendEvent(
             workflowId: draft.workflowId,
             eventType: "SignalDraftConsented",
@@ -47,6 +49,3 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
         )
     }
 }
-
-// Replace PreviewQuorumCoreBridge with a UniFFI generated adapter when the
-// Rust bridge is generated from schemas/quorum-mobile.udl.

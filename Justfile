@@ -59,6 +59,36 @@ ios-sim device="iPhone 16": (ios-build device)
     xcrun simctl install booted "$APP_PATH"
     xcrun simctl launch booted "$APP_BUNDLE_ID"
 
+# --- Quorum iOS product app (apps/marquee/quorum-sense/ios) ---
+
+# Build the quorum-ffi Rust crate into CoreBridge/QuorumFFI.xcframework +
+# QuorumFFI.swift (both gitignored). Must run before generating the project.
+quorum-ios-uniffi:
+    bash scripts/build-mobile-ffi-ios.sh
+
+# Generate the (uncommitted) QuorumMobile.xcodeproj from project.yml. Depends on
+# the xcframework existing, so it chains through quorum-ios-uniffi.
+quorum-ios-gen: quorum-ios-uniffi
+    cd apps/marquee/quorum-sense/ios && xcodegen generate
+
+# Build the product app for the simulator (runs against the real Rust core via
+# QuorumCoreBridgeFFI).
+quorum-ios-build device="iPhone 16": quorum-ios-gen
+    cd apps/marquee/quorum-sense/ios && xcodebuild \
+      -scheme QuorumMobile \
+      -destination 'platform=iOS Simulator,name={{device}}' \
+      -derivedDataPath build \
+      build
+
+# Archive for distribution. Requires the Apple Distribution signing identity in
+# the login keychain and the App ID registered as se.reflective.quorum.
+quorum-ios-archive: quorum-ios-gen
+    cd apps/marquee/quorum-sense/ios && xcodebuild \
+      -scheme QuorumMobile \
+      -destination 'generic/platform=iOS' \
+      -archivePath build/QuorumMobile.xcarchive \
+      archive
+
 # --- Android native shell template ---
 
 android-uniffi:

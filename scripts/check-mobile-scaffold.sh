@@ -6,9 +6,10 @@ required_files=(
   "schemas/quorum-mobile.udl"
   "apps/marquee/quorum-sense/ffi/src/quorum_mobile.udl"
   "schemas/quorum-mobile-workflow-v1.md"
-  "apps/marquee/quorum-sense/ios/QuorumMobileIOS/Package.swift"
-  "apps/marquee/quorum-sense/ios/QuorumMobileIOS/Sources/QuorumMobileIOS/Views/SignalCaptureView.swift"
-  "apps/marquee/quorum-sense/ios/QuorumMobileIOS/Sources/QuorumMobileIOS/CoreBridge/QuorumCoreBridge.swift"
+  "apps/marquee/quorum-sense/ios/project.yml"
+  "apps/marquee/quorum-sense/ios/App/QuorumMobileApp.swift"
+  "apps/marquee/quorum-sense/ios/Views/SignalCaptureView.swift"
+  "apps/marquee/quorum-sense/ios/CoreBridge/QuorumCoreBridge.swift"
   "apps/marquee/quorum-sense/android/settings.gradle.kts"
   "apps/marquee/quorum-sense/android/app/build.gradle.kts"
   "apps/marquee/quorum-sense/android/app/src/main/java/se/reflective/quorum/ui/QuorumMobileApp.kt"
@@ -33,7 +34,9 @@ grep -q '"id": "quorum.field_signal_capture.v1"' \
   apps/marquee/quorum-sense/fixtures/field-signal-capture.v1.json
 grep -q "quorum_draft_field_signal" schemas/quorum-mobile.udl
 grep -q "SignalCaptureView" \
-  apps/marquee/quorum-sense/ios/QuorumMobileIOS/Sources/QuorumMobileIOS/Views/SignalCaptureView.swift
+  apps/marquee/quorum-sense/ios/Views/SignalCaptureView.swift
+grep -q "@main" \
+  apps/marquee/quorum-sense/ios/App/QuorumMobileApp.swift
 grep -q "SignalCaptureScreen" \
   apps/marquee/quorum-sense/android/app/src/main/java/se/reflective/quorum/ui/QuorumMobileApp.kt
 
