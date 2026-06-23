@@ -1,6 +1,9 @@
 # Reflective mobile app fleet — one line per app: <slug>:<Display Name>
 # slug must be lowercase [a-z][a-z0-9]* (reverse-DNS safe); it becomes
 # the last label of the bundle id / applicationId: se.reflective.<slug>
+#
+# Each app also has a corresponding backend server — see apps/backends.txt and
+# docs/architecture/mobile-backend-pairing.md.
 quorum:Quorum
 atlas:Atlas
 vouch:Vouch

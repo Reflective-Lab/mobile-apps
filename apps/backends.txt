@@ -1,0 +1,21 @@
+# Reflective mobile app fleet — backend pairing.
+# One line per app: <slug>:<backend service base URL>
+#
+# Every mobile app in apps/registry.txt has a corresponding backend server,
+# owned and deployed from ../marquee-apps/<product>/ to Google Cloud Run
+# (region europe-west). The mobile app is the client; the server is authoritative
+# ("device proposes; server promotes" — see docs/adr/0002 and EPIC.md).
+#
+# This file records the KNOWN/default Cloud Run service URL per app. The exact
+# URL is assigned at DEPLOY time, so it is meant to be overridden: export
+# APP_BACKEND_URL before sourcing scripts/app-config.sh and it wins over the
+# value here. From the backend repo:
+#   APP_BACKEND_URL=$(cd ../marquee-apps/quorum-sense && just cloud-url | sed -n 's/^QUORUM_SERVICE_URL=//p')
+#
+# The app's API base path is <service URL>/<product> (e.g. .../quorum-sense);
+# see docs/architecture/mobile-backend-pairing.md for the full URL contract.
+#
+# Empty value = backend not provisioned yet (TBD).
+quorum:https://quorum-sense-backend-goak2gcj7a-ew.a.run.app
+atlas:
+vouch:
