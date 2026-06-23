@@ -9,16 +9,38 @@
 // (quorum_ffi) so the generated Swift/Kotlin bindings resolve
 // the native library under the same name, mirroring crates/shell-ffi.
 
-// Typed boundary error: raw foreign strings/floats that don't map to a domain
-// value surface as one of these (carrying the offending value) instead of a
-// silent default. Mapping happens only in the FFI layer, never in domain code.
+// Typed boundary error. The only failures that can cross this seam are a numeric
+// range (confidence) and the AI-routing inputs that are still strings. Modality,
+// consent, event-type and sync-state are *enums* on the wire (below), so an
+// invalid one is a compile error on the caller, not a runtime error here — hence
+// no InvalidModality / InvalidConsentState: those states are unrepresentable.
 [Error]
 interface QuorumError {
-    InvalidModality(string value);
-    InvalidConsentState(string value);
     ConfidenceOutOfRange(f32 value);
     UnsupportedPlatform(string value);
     UnsupportedTask(string value);
+};
+
+// Wire enums: the contract carries domain enums, not strings, so neither Swift
+// nor Kotlin can build a draft with an unknown modality/consent (and the core
+// can't emit an unknown event/sync). Misuse is caught by the type system.
+enum SignalModality {
+    "Text",
+    "VoiceTranscript",
+    "ImageOcrText",
+};
+
+enum ConsentState {
+    "Pending",
+    "Consented",
+};
+
+enum AppendEventType {
+    "SignalDraftConsented",
+};
+
+enum SyncState {
+    "QueuedForSync",
 };
 
 dictionary FfiAppSummary {
@@ -33,21 +55,21 @@ dictionary FfiQuorumSignalDraft {
     string workflow_id;
     string draft_id;
     string inquiry_thread_id;
-    string modality;
+    SignalModality modality;
     string raw_capture;
     string summary;
     string latent_need;
     string contradiction;
     float confidence;
-    string consent_state;
+    ConsentState consent_state;
 };
 
 dictionary FfiQuorumAppendEvent {
     string workflow_id;
-    string event_type;
+    AppendEventType event_type;
     string draft_id;
     string inquiry_thread_id;
-    string sync_state;
+    SyncState sync_state;
 };
 
 namespace quorum_ffi {
@@ -68,13 +90,15 @@ namespace quorum_ffi {
 
     string quorum_field_signal_workflow_id();
 
-    [Throws=QuorumError]
+    // No [Throws]: `modality` is an enum, so this can no longer fail on it, and
+    // the other inputs are free-form text.
     FfiQuorumSignalDraft quorum_draft_field_signal(
         string inquiry_thread_id,
-        string modality,
+        SignalModality modality,
         string raw_capture
     );
 
+    // Still throws: `confidence` is a float and must be range-checked here.
     [Throws=QuorumError]
     FfiQuorumAppendEvent quorum_append_consented_signal(
         FfiQuorumSignalDraft draft

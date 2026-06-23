@@ -6,9 +6,10 @@ uniffi::include_scaffolding!("quorum_mobile");
 
 use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};
 use reflective_mobile_core::quorum::{
-    Confidence, ConsentState, DraftId, FIELD_SIGNAL_CAPTURE_WORKFLOW_ID, InquiryThreadId,
-    QuorumAppendEvent, QuorumSignalDraft, SignalModality, WorkflowId, append_consented_signal,
-    draft_field_signal,
+    AppendEventType as DomainAppendEventType, Confidence, ConsentState as DomainConsentState,
+    DraftId, FIELD_SIGNAL_CAPTURE_WORKFLOW_ID, InquiryThreadId, QuorumAppendEvent,
+    QuorumSignalDraft, SignalModality as DomainSignalModality, SyncState as DomainSyncState,
+    WorkflowId, append_consented_signal, draft_field_signal,
 };
 use reflective_mobile_core::{
     MobilePlatform, PlatformRuntime, ProductFamily, ProductStatus, starter_portfolio,
@@ -74,10 +75,6 @@ fn observed<T>(result: Result<T, QuorumError>) -> Result<T, QuorumError> {
 // ---------------------------------------------------------------------------
 #[derive(Debug, thiserror::Error)]
 pub enum QuorumError {
-    #[error("unknown signal modality: {value}")]
-    InvalidModality { value: String },
-    #[error("unknown consent state: {value}")]
-    InvalidConsentState { value: String },
     #[error("confidence {value} is outside 0.0..=1.0")]
     ConfidenceOutOfRange { value: f32 },
     #[error("unsupported platform: {value}")]
@@ -93,9 +90,7 @@ impl QuorumError {
     /// failure variants (storage, sync, …) should return `true`.
     fn is_reportable(&self) -> bool {
         match self {
-            QuorumError::InvalidModality { .. }
-            | QuorumError::InvalidConsentState { .. }
-            | QuorumError::ConfidenceOutOfRange { .. }
+            QuorumError::ConfidenceOutOfRange { .. }
             | QuorumError::UnsupportedPlatform { .. }
             | QuorumError::UnsupportedTask { .. } => false,
         }
@@ -103,9 +98,41 @@ impl QuorumError {
 }
 
 // ---------------------------------------------------------------------------
-// Wire DTOs. These are intentionally string/float-typed: that's the boundary
-// representation crossing into Swift/Kotlin. Semantics live in the domain types
-// in mobile-core; the conversions below are the only place strings become meaning.
+// Wire enums. These mirror the mobile-core domain enums but are defined here
+// because UniFFI can only generate FFI converters for crate-local types. The
+// bijection is total and exhaustive — the compiler proves every variant is
+// handled both ways, so adding a domain variant won't compile until the wire
+// catches up. The contract is therefore strongly typed on *both* sides: Swift
+// and Kotlin receive enums, so an invalid modality/consent/event/sync is a
+// compile error on the caller, never a runtime error here.
+// ---------------------------------------------------------------------------
+macro_rules! wire_enum {
+    ($wire:ident <-> $domain:ident { $($v:ident),+ $(,)? }) => {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum $wire {
+            $($v),+
+        }
+        impl From<$domain> for $wire {
+            fn from(d: $domain) -> Self {
+                match d { $($domain::$v => Self::$v),+ }
+            }
+        }
+        impl From<$wire> for $domain {
+            fn from(w: $wire) -> Self {
+                match w { $($wire::$v => $domain::$v),+ }
+            }
+        }
+    };
+}
+
+wire_enum!(SignalModality <-> DomainSignalModality { Text, VoiceTranscript, ImageOcrText });
+wire_enum!(ConsentState <-> DomainConsentState { Pending, Consented });
+wire_enum!(AppendEventType <-> DomainAppendEventType { SignalDraftConsented });
+wire_enum!(SyncState <-> DomainSyncState { QueuedForSync });
+
+// ---------------------------------------------------------------------------
+// Wire DTOs. String/float for free-form fields; enums (above) for the
+// closed sets. The conversions below are the only place wire <-> domain crosses.
 // ---------------------------------------------------------------------------
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FfiAppSummary {
@@ -121,22 +148,22 @@ pub struct FfiQuorumSignalDraft {
     pub workflow_id: String,
     pub draft_id: String,
     pub inquiry_thread_id: String,
-    pub modality: String,
+    pub modality: SignalModality,
     pub raw_capture: String,
     pub summary: String,
     pub latent_need: String,
     pub contradiction: String,
     pub confidence: f32,
-    pub consent_state: String,
+    pub consent_state: ConsentState,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FfiQuorumAppendEvent {
     pub workflow_id: String,
-    pub event_type: String,
+    pub event_type: AppendEventType,
     pub draft_id: String,
     pub inquiry_thread_id: String,
-    pub sync_state: String,
+    pub sync_state: SyncState,
 }
 
 pub fn mobile_portfolio() -> Vec<FfiAppSummary> {
@@ -171,17 +198,14 @@ pub fn quorum_field_signal_workflow_id() -> String {
 
 pub fn quorum_draft_field_signal(
     inquiry_thread_id: String,
-    modality: String,
+    modality: SignalModality,
     raw_capture: String,
-) -> Result<FfiQuorumSignalDraft, QuorumError> {
-    observed((|| {
-        let modality_value =
-            SignalModality::parse(&modality).ok_or_else(|| QuorumError::InvalidModality {
-                value: modality.clone(),
-            })?;
-        let draft = draft_field_signal(&inquiry_thread_id, modality_value, &raw_capture);
-        Ok(to_ffi_draft(&draft))
-    })())
+) -> FfiQuorumSignalDraft {
+    to_ffi_draft(&draft_field_signal(
+        &inquiry_thread_id,
+        modality.into(),
+        &raw_capture,
+    ))
 }
 
 pub fn quorum_append_consented_signal(
@@ -201,26 +225,19 @@ fn to_ffi_draft(draft: &QuorumSignalDraft) -> FfiQuorumSignalDraft {
         workflow_id: draft.workflow_id.as_str().to_owned(),
         draft_id: draft.draft_id.as_str().to_owned(),
         inquiry_thread_id: draft.inquiry_thread_id.as_str().to_owned(),
-        modality: draft.modality.as_str().to_owned(),
+        modality: draft.modality.into(),
         raw_capture: draft.raw_capture.clone(),
         summary: draft.summary.clone(),
         latent_need: draft.latent_need.clone(),
         contradiction: draft.contradiction.clone(),
         confidence: draft.confidence.value(),
-        consent_state: draft.consent_state.as_str().to_owned(),
+        consent_state: draft.consent_state.into(),
     }
 }
 
 fn from_ffi_draft(draft: FfiQuorumSignalDraft) -> Result<QuorumSignalDraft, QuorumError> {
-    let modality =
-        SignalModality::parse(&draft.modality).ok_or_else(|| QuorumError::InvalidModality {
-            value: draft.modality.clone(),
-        })?;
-    let consent_state = ConsentState::parse(&draft.consent_state).ok_or_else(|| {
-        QuorumError::InvalidConsentState {
-            value: draft.consent_state.clone(),
-        }
-    })?;
+    // Only `confidence` can fail now — modality and consent are enums on the
+    // wire, so they're already valid by the time they reach here.
     let confidence =
         Confidence::new(draft.confidence).ok_or(QuorumError::ConfidenceOutOfRange {
             value: draft.confidence,
@@ -230,23 +247,23 @@ fn from_ffi_draft(draft: FfiQuorumSignalDraft) -> Result<QuorumSignalDraft, Quor
         workflow_id: WorkflowId::new(draft.workflow_id),
         draft_id: DraftId::new(draft.draft_id),
         inquiry_thread_id: InquiryThreadId::new(draft.inquiry_thread_id),
-        modality,
+        modality: draft.modality.into(),
         raw_capture: draft.raw_capture,
         summary: draft.summary,
         latent_need: draft.latent_need,
         contradiction: draft.contradiction,
         confidence,
-        consent_state,
+        consent_state: draft.consent_state.into(),
     })
 }
 
 fn to_ffi_event(event: &QuorumAppendEvent) -> FfiQuorumAppendEvent {
     FfiQuorumAppendEvent {
         workflow_id: event.workflow_id.as_str().to_owned(),
-        event_type: event.event_type.as_str().to_owned(),
+        event_type: event.event_type.into(),
         draft_id: event.draft_id.as_str().to_owned(),
         inquiry_thread_id: event.inquiry_thread_id.as_str().to_owned(),
-        sync_state: event.sync_state.as_str().to_owned(),
+        sync_state: event.sync_state.into(),
     }
 }
 
@@ -318,17 +335,16 @@ mod tests {
 
     // Values mirror apps/marquee/quorum-sense/fixtures/field-signal-capture.v1.json.
     const FIXTURE_INQUIRY_THREAD_ID: &str = "inq_mobile_launch_risks";
-    const FIXTURE_MODALITY: &str = "voice_transcript";
     const FIXTURE_RAW_CAPTURE: &str =
         "The sales team says rollout is fine, but support is seeing confusion in every pilot.";
 
     fn fixture_draft() -> FfiQuorumSignalDraft {
+        // No Result + no string: `modality` is an enum, so this can't fail.
         quorum_draft_field_signal(
             FIXTURE_INQUIRY_THREAD_ID.to_owned(),
-            FIXTURE_MODALITY.to_owned(),
+            SignalModality::VoiceTranscript,
             FIXTURE_RAW_CAPTURE.to_owned(),
         )
-        .expect("fixture modality is valid")
     }
 
     #[test]
@@ -378,7 +394,7 @@ mod tests {
             "draft:inq_mobile_launch_risks:field-signal-v1"
         );
         assert_eq!(draft.inquiry_thread_id, FIXTURE_INQUIRY_THREAD_ID);
-        assert_eq!(draft.modality, "voice_transcript");
+        assert_eq!(draft.modality, SignalModality::VoiceTranscript);
         assert_eq!(draft.raw_capture, FIXTURE_RAW_CAPTURE);
         assert_eq!(
             draft.latent_need,
@@ -389,7 +405,7 @@ mod tests {
             "participants report alignment while surfacing unresolved tension"
         );
         assert_eq!(draft.confidence, 0.67);
-        assert_eq!(draft.consent_state, "pending");
+        assert_eq!(draft.consent_state, ConsentState::Pending);
     }
 
     #[test]
@@ -398,25 +414,15 @@ mod tests {
         let event = quorum_append_consented_signal(draft.clone()).unwrap();
 
         assert_eq!(event.workflow_id, draft.workflow_id);
-        assert_eq!(event.event_type, "SignalDraftConsented");
+        assert_eq!(event.event_type, AppendEventType::SignalDraftConsented);
         assert_eq!(event.draft_id, draft.draft_id);
         assert_eq!(event.inquiry_thread_id, FIXTURE_INQUIRY_THREAD_ID);
-        assert_eq!(event.sync_state, "queued_for_sync");
+        assert_eq!(event.sync_state, SyncState::QueuedForSync);
     }
 
-    #[test]
-    fn unknown_modality_is_rejected_at_the_boundary() {
-        let result = quorum_draft_field_signal(
-            FIXTURE_INQUIRY_THREAD_ID.to_owned(),
-            "hologram".to_owned(),
-            FIXTURE_RAW_CAPTURE.to_owned(),
-        );
-
-        assert!(matches!(
-            result,
-            Err(QuorumError::InvalidModality { value }) if value == "hologram"
-        ));
-    }
+    // NOTE: there is no `unknown_modality` / `unknown_consent_state` test any
+    // more — `modality` and `consent_state` are enums on the wire, so passing an
+    // invalid one doesn't compile. The contract makes the misuse unrepresentable.
 
     #[test]
     fn append_rejects_out_of_range_confidence() {
@@ -426,17 +432,6 @@ mod tests {
         assert!(matches!(
             quorum_append_consented_signal(draft),
             Err(QuorumError::ConfidenceOutOfRange { value }) if value == 2.0
-        ));
-    }
-
-    #[test]
-    fn append_rejects_unknown_consent_state() {
-        let mut draft = fixture_draft();
-        draft.consent_state = "revoked".to_owned();
-
-        assert!(matches!(
-            quorum_append_consented_signal(draft),
-            Err(QuorumError::InvalidConsentState { value }) if value == "revoked"
         ));
     }
 }
