@@ -49,16 +49,48 @@ jobs:
       - name: Docs
         run: cargo doc --workspace --no-deps --locked
 
-  ios-shell:
-    name: Quorum iOS Shell
+  ios-product:
+    name: Quorum iOS Product App
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build SwiftUI package
-        working-directory: apps/marquee/quorum-sense/ios/QuorumMobileIOS
-        run: swift build
+      - name: Install xcodegen + just
+        run: brew install xcodegen just
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install iOS rustup targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-ios-product-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-ios-product-cargo-
+
+      # Builds the Quorum FFI xcframework + bindings, then generates the project.
+      - name: Build Quorum FFI and generate project
+        run: just quorum-ios-gen
+
+      - name: Build Quorum iOS app
+        working-directory: apps/marquee/quorum-sense/ios
+        run: |
+          xcodebuild \
+            -scheme QuorumMobile \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            build
 
   ios-smoke-shell:
     name: iOS Smoke Shell (UniFFI + xcodebuild)
@@ -98,7 +130,7 @@ jobs:
         run: |
           xcodegen generate
           xcodebuild \
-            -scheme ReflectiveShell \
+            -scheme App \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             build

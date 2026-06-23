@@ -1,0 +1,12 @@
+▿ FieldSignalDraft
+  ▿ confidence: Confidence
+    - value: 0.67
+  - consentState: ConsentState.pending
+  - contradiction: "participants report alignment while surfacing unresolved tension"
+  - draftId: "draft:inq_mobile_launch_risks:field-signal-v1"
+  - inquiryThreadId: "inq_mobile_launch_risks"
+  - latentNeed: "needs earlier visibility into organizational ambiguity"
+  - modality: SignalModality.voiceTranscript
+  - rawCapture: "The sales team says rollout is fine, but support is seeing confusion in every pilot."
+  - summary: "The sales team says rollout is fine, but support is seeing confusion in every pilot."
+  - workflowId: "quorum.field_signal_capture.v1"

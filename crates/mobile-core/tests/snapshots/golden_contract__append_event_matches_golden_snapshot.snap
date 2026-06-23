@@ -1,0 +1,17 @@
+---
+source: crates/mobile-core/tests/golden_contract.rs
+expression: append_consented_signal(&draft_from_fixture_input())
+---
+QuorumAppendEvent {
+    workflow_id: WorkflowId(
+        "quorum.field_signal_capture.v1",
+    ),
+    event_type: SignalDraftConsented,
+    draft_id: DraftId(
+        "draft:inq_mobile_launch_risks:field-signal-v1",
+    ),
+    inquiry_thread_id: InquiryThreadId(
+        "inq_mobile_launch_risks",
+    ),
+    sync_state: QueuedForSync,
+}

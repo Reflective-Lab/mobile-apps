@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cross-compile the reflective-mobile-ffi Rust crate for Android ABIs and
+# Cross-compile the quorum-ffi Rust crate for Android ABIs and
 # generate Kotlin bindings consumed by apps/marquee/quorum-sense/android/.
 #
 # Unverified by Claude — no JDK, Android SDK, NDK, or cargo-ndk on the dev
@@ -11,8 +11,8 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
-CRATE=reflective-mobile-ffi
-UDL=crates/mobile-ffi/src/quorum_mobile.udl
+CRATE=quorum-ffi
+UDL=apps/marquee/quorum-sense/ffi/src/quorum_mobile.udl
 ANDROID_APP=apps/marquee/quorum-sense/android/app
 
 JNI_LIBS_DIR="$ANDROID_APP/src/main/jniLibs"
@@ -51,4 +51,4 @@ cargo run -p "$CRATE" --bin uniffi-bindgen --quiet -- \
     generate "$UDL" --language kotlin --out-dir "$KOTLIN_OUT"
 
 echo "✓ jniLibs: $JNI_LIBS_DIR"
-echo "✓ Kotlin bindings: $KOTLIN_OUT/uniffi/reflective_mobile_ffi/"
+echo "✓ Kotlin bindings: $KOTLIN_OUT/uniffi/quorum_ffi/"

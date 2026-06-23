@@ -4,8 +4,9 @@
 - Status: Accepted
 - Supersedes: informal placement notes in `docs/architecture/mobile-shared-core-study.md`
   (study retained as evidence and spike index)
-- Related: ADR 0001, `docs/architecture/native-ai-rust-core.md`,
-  `docs/architecture/quorum-sense-boundaries.md`
+- Related: ADR 0001, ADR 0003, `docs/architecture/native-ai-rust-core.md`,
+  `docs/architecture/quorum-sense-boundaries.md`,
+  `docs/architecture/quorum-ios-native-ai-collaboration-report.md`
 
 ## Decision
 
@@ -99,7 +100,7 @@ app server (Converge, Organism, Mosaic, Helm receipts)
 
 Evidence: `spikes/quorum-domain-mobile/` (marquee domain reuse, mobile-clean),
 `spikes/inkling-notes-mobile/` (studio reuse; not mobile-clean until upstream
-feature split), `crates/mobile-ffi` (UniFFI product track for Quorum).
+feature split), `apps/marquee/quorum-sense/ffi` (UniFFI product track for Quorum).
 
 ## Per-app placement worksheet
 
@@ -167,7 +168,7 @@ stable before M2 wires Quorum shells to generated UniFFI bindings.
 
 ## Follow-up
 
-- Wire Quorum `PreviewQuorumCoreBridge` to generated `reflective_mobile_ffi`
+- Wire Quorum `PreviewQuorumCoreBridge` to generated `quorum_ffi`
   bindings (M2 technical step).
 - Define `mobile-core` offline queue + optimistic reconciliation contract when
   Quorum field capture ships.

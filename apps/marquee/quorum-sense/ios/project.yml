@@ -1,0 +1,107 @@
+# XcodeGen spec for the Quorum iOS product app. Generate the (uncommitted)
+# QuorumMobile.xcodeproj with:
+#   cd apps/marquee/quorum-sense/ios && xcodegen generate
+# (the Justfile's `quorum-ios-gen` recipe does this for you).
+#
+# Identity is fixed here because this is a shipping product, not the parametric
+# fleet template: the bundle id MUST match the App ID registered in the Apple
+# Developer portal (se.reflective.quorum) and the App Store Connect app record.
+name: QuorumMobile
+options:
+  bundleIdPrefix: se.reflective
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+# Signing applied project-wide so the app and both test bundles inherit it.
+# Team ID is the Apple Developer account; automatic signing lets Xcode manage
+# the distribution profile (archive/CI must pass `-allowProvisioningUpdates`).
+settings:
+  base:
+    DEVELOPMENT_TEAM: LKXXUTCTZN
+    CODE_SIGN_STYLE: Automatic
+packages:
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.17.0"
+schemes:
+  QuorumMobile:
+    build:
+      targets:
+        QuorumMobile: all
+        QuorumMobileTests: [test]
+        QuorumMobileUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - QuorumMobileTests
+        - QuorumMobileUITests
+targets:
+  QuorumMobile:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Views
+      - Capture
+      - PlatformAI
+      - Resources
+      - path: CoreBridge
+        excludes:
+          - "*.xcframework/**"
+    # The UniFFI bridge. QuorumFFI.xcframework + QuorumFFI.swift are generated
+    # (and gitignored) by scripts/build-mobile-ffi-ios.sh, so that script must
+    # run before `xcodegen generate`. It is a static-library xcframework, so
+    # embed: false (linked, not embedded).
+    dependencies:
+      - framework: CoreBridge/QuorumFFI.xcframework
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.reflective.quorum
+        PRODUCT_NAME: QuorumMobile
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.1.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Quorum
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: Capture a field signal from a photo.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Capture a field signal from voice.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe a captured voice signal on device.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+
+  # Unit/logic + boundary tests. Swift Testing (@Test/#expect) is the primary
+  # framework; SnapshotTesting provides golden coverage. Hosted in the app so
+  # tests can @testable import QuorumMobile and reach the real FFI adapter.
+  QuorumMobileTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/Unit
+    dependencies:
+      - target: QuorumMobile
+      - package: SnapshotTesting
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+
+  # End-to-end UI automation. XCUITest is XCTest-based and drives the running app.
+  QuorumMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - Tests/UI
+    dependencies:
+      - target: QuorumMobile
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES

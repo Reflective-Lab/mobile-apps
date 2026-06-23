@@ -1,0 +1,29 @@
+[package]
+name = "quorum-ffi"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Product UniFFI surface exposing the Reflective mobile Rust core (Quorum field-signal capture first) to the native Swift/Kotlin shells."
+
+[lib]
+name = "quorum_ffi"
+path = "src/lib.rs"
+crate-type = ["staticlib", "cdylib", "lib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+doc = false
+
+[dependencies]
+reflective-mobile-ai = { path = "../../../../crates/mobile-ai" }
+reflective-mobile-core = { path = "../../../../crates/mobile-core" }
+thiserror = "2"
+uniffi = { version = "0.31.1", features = ["cli"] }
+
+[build-dependencies]
+uniffi = { version = "0.31.1", features = ["build"] }
+
+[dev-dependencies]
+proptest = "1"

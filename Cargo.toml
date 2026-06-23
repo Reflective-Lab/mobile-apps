@@ -1,9 +1,11 @@
 [workspace]
 members = [
-    "crates/mobile-core",
-    "crates/mobile-ai",
-    "crates/mobile-ffi",
-    "crates/shell-ffi",
+    # Shared foundation, reused by every app.
+    "crates/*",
+    # Per-app domain + UniFFI crates, co-located with each app's native shells.
+    # Add "apps/*/*/core" here once the first per-app domain crate exists
+    # (Cargo errors on a glob that currently matches nothing).
+    "apps/*/*/ffi",
 ]
 resolver = "2"
 

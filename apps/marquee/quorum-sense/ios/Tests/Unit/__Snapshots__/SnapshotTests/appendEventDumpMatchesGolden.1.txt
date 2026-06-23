@@ -1,0 +1,6 @@
+▿ QuorumAppendEvent
+  - draftId: "draft:inq_mobile_launch_risks:field-signal-v1"
+  - eventType: AppendEventType.signalDraftConsented
+  - inquiryThreadId: "inq_mobile_launch_risks"
+  - syncState: SyncState.queuedForSync
+  - workflowId: "quorum.field_signal_capture.v1"
