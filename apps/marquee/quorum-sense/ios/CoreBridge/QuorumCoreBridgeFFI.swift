@@ -1,11 +1,11 @@
 import Foundation
 
 /// Raised when the Rust core returns a value this app build cannot map into a
-/// domain type (a core/app version skew). Distinct from the generated
-/// `QuorumError`, which the FFI functions themselves throw when the *core*
-/// rejects input.
+/// domain type. With modality/consent/event/sync now enums on the wire, the only
+/// remaining unmappable value is a confidence outside `0...1` (a float the UDL
+/// can't constrain). Distinct from the generated `QuorumError`, which the FFI
+/// functions themselves throw when the *core* rejects input.
 public enum CoreBridgeError: Error {
-    case unrecognizedCoreValue(field: String, value: String)
     case confidenceOutOfRange(Float)
 }
 
@@ -17,9 +17,10 @@ public enum CoreBridgeError: Error {
 /// `scripts/build-mobile-ffi-ios.sh` and are gitignored, so this file does not
 /// compile until that script has produced them.
 ///
-/// This adapter is the *only* place the FFI wire DTOs (`Ffi*`, string-typed)
-/// are translated to and from the Swift domain types — mirroring the boundary
-/// mapping the Rust side performs in `quorum-ffi/src/lib.rs`.
+/// This adapter is the *only* place the FFI wire DTOs (`Ffi*`) are translated to
+/// and from the Swift domain types — mirroring the boundary mapping the Rust side
+/// performs in `quorum-ffi/src/lib.rs`. The closed-set fields are enums on the
+/// wire now, so they cross unchanged; only `confidence` (a float) is validated.
 ///
 /// It is an `actor` so the synchronous FFI calls run on the actor's executor,
 /// off the main thread (ADR 0003): a `@MainActor` view `await`s these methods,
@@ -38,9 +39,9 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         modality: SignalModality,
         rawCapture: String
     ) async throws -> FieldSignalDraft {
-        let draft = try quorumDraftFieldSignal(
+        let draft = quorumDraftFieldSignal(
             inquiryThreadId: inquiryThreadId,
-            modality: modality.rawValue,
+            modality: modality,
             rawCapture: rawCapture
         )
         return try Self.domainDraft(draft)
@@ -48,7 +49,7 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
 
     public func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
         let event = try quorumAppendConsentedSignal(draft: Self.ffiDraft(draft))
-        return try Self.domainEvent(event)
+        return Self.domainEvent(event)
     }
 
     // MARK: - Boundary mapping (FFI wire DTO <-> Swift domain)
@@ -56,14 +57,8 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
     // mirroring the Rust boundary in quorum-ffi/src/lib.rs.
 
     private static func domainDraft(_ ffi: FfiQuorumSignalDraft) throws -> FieldSignalDraft {
-        guard let modality = SignalModality(rawValue: ffi.modality) else {
-            throw CoreBridgeError.unrecognizedCoreValue(field: "modality", value: ffi.modality)
-        }
-        guard let consentState = ConsentState(rawValue: ffi.consentState) else {
-            throw CoreBridgeError.unrecognizedCoreValue(
-                field: "consentState", value: ffi.consentState
-            )
-        }
+        // modality/consentState are enums on the wire — they cross as-is; only the
+        // float confidence still needs range validation the UDL can't express.
         guard let confidence = Confidence(ffi.confidence) else {
             throw CoreBridgeError.confidenceOutOfRange(ffi.confidence)
         }
@@ -71,29 +66,24 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
             workflowId: ffi.workflowId,
             draftId: ffi.draftId,
             inquiryThreadId: ffi.inquiryThreadId,
-            modality: modality,
+            modality: ffi.modality,
             rawCapture: ffi.rawCapture,
             summary: ffi.summary,
             latentNeed: ffi.latentNeed,
             contradiction: ffi.contradiction,
             confidence: confidence,
-            consentState: consentState
+            consentState: ffi.consentState
         )
     }
 
-    private static func domainEvent(_ ffi: FfiQuorumAppendEvent) throws -> QuorumAppendEvent {
-        guard let eventType = AppendEventType(rawValue: ffi.eventType) else {
-            throw CoreBridgeError.unrecognizedCoreValue(field: "eventType", value: ffi.eventType)
-        }
-        guard let syncState = SyncState(rawValue: ffi.syncState) else {
-            throw CoreBridgeError.unrecognizedCoreValue(field: "syncState", value: ffi.syncState)
-        }
-        return QuorumAppendEvent(
+    private static func domainEvent(_ ffi: FfiQuorumAppendEvent) -> QuorumAppendEvent {
+        // eventType/syncState are enums on the wire — nothing left to validate.
+        QuorumAppendEvent(
             workflowId: ffi.workflowId,
-            eventType: eventType,
+            eventType: ffi.eventType,
             draftId: ffi.draftId,
             inquiryThreadId: ffi.inquiryThreadId,
-            syncState: syncState
+            syncState: ffi.syncState
         )
     }
 
@@ -102,13 +92,13 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
             workflowId: draft.workflowId,
             draftId: draft.draftId,
             inquiryThreadId: draft.inquiryThreadId,
-            modality: draft.modality.rawValue,
+            modality: draft.modality,
             rawCapture: draft.rawCapture,
             summary: draft.summary,
             latentNeed: draft.latentNeed,
             contradiction: draft.contradiction,
             confidence: draft.confidence.value,
-            consentState: draft.consentState.rawValue
+            consentState: draft.consentState
         )
     }
 }

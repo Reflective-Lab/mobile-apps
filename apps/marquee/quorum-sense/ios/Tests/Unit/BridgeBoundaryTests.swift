@@ -72,4 +72,20 @@ struct BridgeBoundaryTests {
         #expect(event.syncState == .queuedForSync)
         #expect(event.draftId == draft.draftId)
     }
+
+    /// Every modality survives the real boundary unchanged. The single-case
+    /// round-trip above can't catch a wire mix-up between two specific cases (a
+    /// UDL reorder or a bridge-mapping slip) — the failure mode the enum-on-the-
+    /// wire refactor could still regress into; this pins each case end to end.
+    @Test("every modality round-trips through the real Rust core",
+          arguments: SignalModality.allCases)
+    func modalityRoundTripsThroughCore(_ modality: SignalModality) async throws {
+        let bridge = QuorumCoreBridgeFFI()
+        let draft = try await bridge.draftFieldSignal(
+            inquiryThreadId: "inq_modality_roundtrip",
+            modality: modality,
+            rawCapture: "boundary fidelity probe"
+        )
+        #expect(draft.modality == modality)
+    }
 }

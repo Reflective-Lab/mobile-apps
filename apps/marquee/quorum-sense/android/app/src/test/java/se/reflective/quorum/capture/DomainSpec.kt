@@ -4,11 +4,17 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.property.checkAll
+import uniffi.quorum_ffi.AppendEventType
+import uniffi.quorum_ffi.ConsentState
+import uniffi.quorum_ffi.SignalModality
+import uniffi.quorum_ffi.SyncState
 
 /**
- * Kotlin-side domain value types. The deep invariant coverage lives in the Rust
- * core; here we assert the mapping types (validation + wire-string round-tripping)
- * the FFI boundary relies on.
+ * Kotlin-side domain value types. The closed sets (modality/consent/event/sync)
+ * are now UniFFI-generated enums, so "unknown wire value" is unrepresentable and
+ * needs no Kotlin parse/reject coverage — the deep invariant coverage lives in
+ * Rust. What remains host-only is `Confidence` validation (a float the UDL can't
+ * constrain) and the UI affordances layered onto the generated enums.
  */
 class DomainSpec : FunSpec({
     test("Confidence.of accepts inclusive bounds and mid-range") {
@@ -32,21 +38,19 @@ class DomainSpec : FunSpec({
         }
     }
 
-    test("modality wire values round-trip and reject unknowns") {
-        SignalModality.entries.forEach { SignalModality.fromWire(it.wireName) shouldBe it }
-        SignalModality.fromWire("hologram").shouldBeNull()
-        SignalModality.fromWire("").shouldBeNull()
-        SignalModality.fromWire("Text").shouldBeNull() // case-sensitive wire contract
+    test("modality exposes every case to the picker") {
+        SignalModality.entries shouldBe listOf(
+            SignalModality.TEXT,
+            SignalModality.VOICE_TRANSCRIPT,
+            SignalModality.IMAGE_OCR_TEXT,
+        )
     }
 
-    test("consent / event / sync wire values round-trip and reject unknowns") {
-        ConsentState.entries.forEach { ConsentState.fromWire(it.wireName) shouldBe it }
-        ConsentState.fromWire("revoked").shouldBeNull()
-
-        AppendEventType.fromWire("SignalDraftConsented") shouldBe AppendEventType.SIGNAL_DRAFT_CONSENTED
-        AppendEventType.fromWire("nope").shouldBeNull()
-
-        SyncState.fromWire("queued_for_sync") shouldBe SyncState.QUEUED_FOR_SYNC
-        SyncState.fromWire("later").shouldBeNull()
+    test("human-facing labels are present") {
+        SignalModality.VOICE_TRANSCRIPT.label shouldBe "Voice"
+        SignalModality.IMAGE_OCR_TEXT.label shouldBe "Photo OCR"
+        ConsentState.PENDING.label shouldBe "Pending"
+        AppendEventType.SIGNAL_DRAFT_CONSENTED.label shouldBe "Signal draft consented"
+        SyncState.QUEUED_FOR_SYNC.label shouldBe "Queued for sync"
     }
 })

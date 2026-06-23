@@ -4,7 +4,8 @@ import Testing
 /// Property-style tests: invariants checked across many deterministic inputs.
 @Suite("Property")
 struct PropertyTests {
-    static let knownModalities = ["text", "voice_transcript", "image_ocr_text"]
+    // The modality-string-parsing property is gone: modality is an enum on the
+    // wire now, so there is no string to parse and no unknown value to reject.
 
     @Test("Confidence is Some iff the value is finite and within 0...1", arguments: 0..<500)
     func confidenceContract(_ seed: Int) {
@@ -18,14 +19,5 @@ struct PropertyTests {
         let value = pool.randomElement(using: &rng)!
         let expectedValid = value.isFinite && (0...1).contains(value)
         #expect((Confidence(value) != nil) == expectedValid)
-    }
-
-    @Test("a string parses to a modality iff it is a known wire value", arguments: 0..<500)
-    func modalityParsing(_ seed: Int) {
-        var rng = SeededRNG(seed: UInt64(seed) &+ 99)
-        let candidate = Bool.random(using: &rng)
-            ? Self.knownModalities.randomElement(using: &rng)!
-            : randomWireLikeString(&rng)
-        #expect((SignalModality(rawValue: candidate) != nil) == Self.knownModalities.contains(candidate))
     }
 }

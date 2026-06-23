@@ -1,9 +1,11 @@
 import Testing
 @testable import QuorumMobile
 
-/// Swift-side domain value types. These mirror the Rust domain; the deep
-/// invariant coverage lives in Rust, so here we assert the Swift mapping types
-/// (validation + wire-string round-tripping) the FFI boundary depends on.
+/// Swift-side domain value types. The closed sets (modality/consent/event/sync)
+/// are now UniFFI-generated enums, so "unknown wire value" is unrepresentable and
+/// needs no Swift parse/reject coverage — the deep invariant coverage lives in
+/// Rust. What remains host-only is `Confidence` validation (a float the UDL can't
+/// constrain) and the UI affordances layered onto the generated enums.
 @Suite("Domain value types")
 struct DomainTests {
     @Test("Confidence accepts inclusive bounds and mid-range")
@@ -20,30 +22,16 @@ struct DomainTests {
         #expect(Confidence(value) == nil)
     }
 
-    @Test("modality wire values round-trip", arguments: SignalModality.allCases)
-    func modalityRoundTrips(_ modality: SignalModality) {
-        #expect(SignalModality(rawValue: modality.rawValue) == modality)
-    }
-
-    @Test("unknown wire strings map to nil")
-    func unknownWireStrings() {
-        #expect(SignalModality(rawValue: "hologram") == nil)
-        #expect(ConsentState(rawValue: "revoked") == nil)
-        #expect(AppendEventType(rawValue: "Nope") == nil)
-        #expect(SyncState(rawValue: "later") == nil)
-    }
-
-    @Test("wire raw values are the stable contract")
-    func wireRawValues() {
-        #expect(SignalModality.voiceTranscript.rawValue == "voice_transcript")
-        #expect(SignalModality.imageOcrText.rawValue == "image_ocr_text")
-        #expect(ConsentState.pending.rawValue == "pending")
-        #expect(AppendEventType.signalDraftConsented.rawValue == "SignalDraftConsented")
-        #expect(SyncState.queuedForSync.rawValue == "queued_for_sync")
+    @Test("modality exposes every case to the picker")
+    func modalityCases() {
+        #expect(SignalModality.allCases == [.text, .voiceTranscript, .imageOcrText])
+        #expect(SignalModality.allCases.allSatisfy { $0.id == $0 })
     }
 
     @Test("human-facing labels are present")
     func labels() {
+        #expect(SignalModality.voiceTranscript.label == "Voice")
+        #expect(SignalModality.imageOcrText.label == "Photo OCR")
         #expect(ConsentState.pending.label == "Pending")
         #expect(AppendEventType.signalDraftConsented.label == "Signal draft consented")
         #expect(SyncState.queuedForSync.label == "Queued for sync")
