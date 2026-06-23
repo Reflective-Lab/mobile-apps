@@ -5,9 +5,15 @@
 //! LOAD  — many concurrent "sessions" (humans + AI) firing draft→append cycles
 //!         through the real boundary functions; measures throughput + latency
 //!         and asserts every result is a coherent, typed snapshot.
-//! CHAOS — adversarial/malformed input under concurrency; asserts every bad
-//!         value is rejected as a *typed* error (never a panic, never a silent
-//!         Ok), i.e. the system degrades by rejecting, not by corrupting.
+//! CHAOS — adversarial input under concurrency; asserts every bad value is
+//!         rejected as a *typed* error (never a panic, never a silent Ok), i.e.
+//!         the system degrades by rejecting, not by corrupting.
+//!
+//! Note: the wire contract uses strict enums (SignalModality / ConsentState), so
+//! a malformed modality or consent value is now *compile-time* impossible — a
+//! stronger guarantee than the previous string-rejection. The only input the
+//! boundary can still receive malformed at runtime is an out-of-range confidence
+//! (an f32), which is what the chaos phase exercises.
 //!
 //! This exercises the synchronous core (the shared foundation). The UI
 //! responsiveness-under-firehose layer needs the ADR 0003 snapshot stream and
@@ -19,7 +25,8 @@ use std::thread;
 use std::time::Instant;
 
 use quorum_ffi::{
-    FfiQuorumSignalDraft, QuorumError, quorum_append_consented_signal, quorum_draft_field_signal,
+    ConsentState, FfiQuorumSignalDraft, QuorumError, SignalModality, SyncState,
+    quorum_append_consented_signal, quorum_draft_field_signal,
 };
 
 /// Deterministic SplitMix64 so runs are reproducible.
@@ -34,7 +41,11 @@ impl Rng {
     }
 }
 
-const MODALITIES: [&str; 3] = ["text", "voice_transcript", "image_ocr_text"];
+const MODALITIES: [SignalModality; 3] = [
+    SignalModality::Text,
+    SignalModality::VoiceTranscript,
+    SignalModality::ImageOcrText,
+];
 
 fn pct(sorted: &[u64], p: f64) -> u64 {
     if sorted.is_empty() {
@@ -64,15 +75,15 @@ fn main() {
                     let thread_id = format!("inq_session_{s}_{}", rng.next() % 1000);
                     let capture = format!("signal {i} from session {s}: {}", rng.next());
                     let t = Instant::now();
-                    let draft = quorum_draft_field_signal(thread_id, modality.to_owned(), capture)
-                        .expect("valid input must draft");
+                    // Strict enums make this infallible: there is no invalid modality.
+                    let draft = quorum_draft_field_signal(thread_id, modality, capture);
                     let event = quorum_append_consented_signal(draft.clone())
                         .expect("valid draft must append");
                     lats.push(t.elapsed().as_nanos() as u64);
                     // Coherence: the snapshot the core emitted is internally consistent.
                     assert_eq!(event.workflow_id, draft.workflow_id);
                     assert_eq!(event.draft_id, draft.draft_id);
-                    assert_eq!(event.sync_state, "queued_for_sync");
+                    assert_eq!(event.sync_state, SyncState::QueuedForSync);
                 }
                 lats
             })
@@ -96,94 +107,44 @@ fn main() {
     );
 
     // ---------------- CHAOS ----------------
+    // Bad modality / consent are compile-time-prevented by the strict wire enums,
+    // so the only malformed runtime input is an out-of-range confidence (f32).
     let chaos_threads = 16usize;
     let chaos_each = 25_000usize;
     println!(
-        "\nCHAOS: {chaos_threads} threads x {chaos_each} adversarial ops = {} bad inputs",
+        "\nCHAOS: {chaos_threads} threads x {chaos_each} out-of-range-confidence ops = {} bad inputs",
         chaos_threads * chaos_each
     );
-    let invalid_modality = Arc::new(AtomicU64::new(0));
-    let invalid_consent = Arc::new(AtomicU64::new(0));
     let bad_confidence = Arc::new(AtomicU64::new(0));
     let slipped_through = Arc::new(AtomicU64::new(0)); // bad input wrongly accepted
 
     let handles: Vec<_> = (0..chaos_threads)
         .map(|t| {
-            let (im, ic, bc, slip) = (
-                invalid_modality.clone(),
-                invalid_consent.clone(),
-                bad_confidence.clone(),
-                slipped_through.clone(),
-            );
+            let (bc, slip) = (bad_confidence.clone(), slipped_through.clone());
             thread::spawn(move || {
                 let mut rng = Rng(0xBAD_5EED ^ t as u64);
                 for _ in 0..chaos_each {
-                    match rng.next() % 3 {
-                        0 => {
-                            // garbage modality -> must be InvalidModality
-                            let r = quorum_draft_field_signal(
-                                "inq".into(),
-                                format!("modality_{}", rng.next()),
-                                "x".into(),
-                            );
-                            match r {
-                                Err(QuorumError::InvalidModality { .. }) => {
-                                    im.fetch_add(1, Ordering::Relaxed);
-                                }
-                                Ok(_) => {
-                                    slip.fetch_add(1, Ordering::Relaxed);
-                                }
-                                Err(_) => {}
-                            }
+                    // Confidence forced above 1.0 -> must be ConfidenceOutOfRange.
+                    let bad = FfiQuorumSignalDraft {
+                        workflow_id: "w".into(),
+                        draft_id: "d".into(),
+                        inquiry_thread_id: "i".into(),
+                        modality: SignalModality::Text,
+                        raw_capture: "x".into(),
+                        summary: "x".into(),
+                        latent_need: "x".into(),
+                        contradiction: "x".into(),
+                        confidence: 2.0 + (rng.next() % 100) as f32,
+                        consent_state: ConsentState::Pending,
+                    };
+                    match quorum_append_consented_signal(bad) {
+                        Err(QuorumError::ConfidenceOutOfRange { .. }) => {
+                            bc.fetch_add(1, Ordering::Relaxed);
                         }
-                        1 => {
-                            // out-of-range confidence on append -> ConfidenceOutOfRange
-                            let bad = FfiQuorumSignalDraft {
-                                workflow_id: "w".into(),
-                                draft_id: "d".into(),
-                                inquiry_thread_id: "i".into(),
-                                modality: "text".into(),
-                                raw_capture: "x".into(),
-                                summary: "x".into(),
-                                latent_need: "x".into(),
-                                contradiction: "x".into(),
-                                confidence: 2.0 + (rng.next() % 100) as f32,
-                                consent_state: "pending".into(),
-                            };
-                            match quorum_append_consented_signal(bad) {
-                                Err(QuorumError::ConfidenceOutOfRange { .. }) => {
-                                    bc.fetch_add(1, Ordering::Relaxed);
-                                }
-                                Ok(_) => {
-                                    slip.fetch_add(1, Ordering::Relaxed);
-                                }
-                                Err(_) => {}
-                            }
+                        Ok(_) => {
+                            slip.fetch_add(1, Ordering::Relaxed);
                         }
-                        _ => {
-                            // garbage consent_state -> InvalidConsentState
-                            let bad = FfiQuorumSignalDraft {
-                                workflow_id: "w".into(),
-                                draft_id: "d".into(),
-                                inquiry_thread_id: "i".into(),
-                                modality: "text".into(),
-                                raw_capture: "x".into(),
-                                summary: "x".into(),
-                                latent_need: "x".into(),
-                                contradiction: "x".into(),
-                                confidence: 0.5,
-                                consent_state: format!("state_{}", rng.next()),
-                            };
-                            match quorum_append_consented_signal(bad) {
-                                Err(QuorumError::InvalidConsentState { .. }) => {
-                                    ic.fetch_add(1, Ordering::Relaxed);
-                                }
-                                Ok(_) => {
-                                    slip.fetch_add(1, Ordering::Relaxed);
-                                }
-                                Err(_) => {}
-                            }
-                        }
+                        Err(_) => {}
                     }
                 }
             })
@@ -195,11 +156,10 @@ fn main() {
     }
     let slipped = slipped_through.load(Ordering::Relaxed);
     println!(
-        "  rejected as typed errors: InvalidModality {} | ConfidenceOutOfRange {} | InvalidConsentState {}",
-        invalid_modality.load(Ordering::Relaxed),
+        "  out-of-range confidence rejected as typed ConfidenceOutOfRange: {}",
         bad_confidence.load(Ordering::Relaxed),
-        invalid_consent.load(Ordering::Relaxed),
     );
+    println!("  (bad modality / consent are compile-time-prevented by strict wire enums)");
     println!("  bad inputs wrongly accepted (must be 0): {slipped}");
     assert_eq!(slipped, 0, "a malformed input was accepted as valid");
     println!("  ok: no panic, no corruption, every bad value rejected at the boundary");

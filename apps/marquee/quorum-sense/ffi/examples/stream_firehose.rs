@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
-use quorum_ffi::{Snapshot, SnapshotSink, run_mock_collaboration};
+use quorum_ffi::{ConsentState, Snapshot, SnapshotSink, run_mock_collaboration};
 
 struct Recorder {
     count: Arc<AtomicU64>,
@@ -31,7 +31,7 @@ impl SnapshotSink for Recorder {
         // Coherent-by-type: the head draft is a real, internally consistent domain
         // object — an inconsistent world literally cannot be encoded.
         if snapshot.latest.workflow_id != "quorum.field_signal_capture.v1"
-            || snapshot.latest.consent_state != "pending"
+            || snapshot.latest.consent_state != ConsentState::Pending
         {
             self.incoherent.fetch_add(1, Ordering::Relaxed);
         }
