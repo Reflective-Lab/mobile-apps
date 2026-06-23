@@ -27,15 +27,25 @@ reflective-mobile-ai = { path = "../../../../crates/mobile-ai" }
 reflective-mobile-core = { path = "../../../../crates/mobile-core" }
 thiserror = "2"
 uniffi = { version = "0.31.1", features = ["cli"] }
-# ureq transport bundles rustls (no OpenSSL), so it cross-compiles cleanly to
-# iOS/Android. NB: do not also enable sentry's `rustls` feature — that is for the
-# reqwest path and pulls a second, conflicting rustls version.
+# reqwest transport with rustls-tls: pure-Rust TLS (no OpenSSL), so it
+# cross-compiles cleanly to iOS *and* Android. NB: `ureq` is lighter but broken
+# for TLS in sentry 0.34 — `ureq` alone has no TLS backend (events silently fail
+# to send) and `ureq`+`rustls` pulls two incompatible rustls versions and won't
+# build. reqwest+rustls is heavier (tokio/hyper) but actually delivers events.
 # Panics + reported errors are sent directly to the separate Rust Sentry project.
+#
+# TRADEOFF: reqwest pulls tokio/hyper → a meaningfully larger binary than the
+# intended lean `ureq`. Correctness now; optimise later. To reclaim leanness:
+#   - bump sentry to a version where the `ureq`+`rustls` transport is fixed, or
+#   - use `ureq`+`native-tls` (lighter, but Android then needs vendored OpenSSL).
+# Verified delivering events (Sentry event abc1cd08…) and cross-compiling to
+# both iOS and Android.
 sentry = { version = "0.34", default-features = false, features = [
     "backtrace",
     "contexts",
     "panic",
-    "ureq",
+    "reqwest",
+    "rustls",
 ], optional = true }
 
 [build-dependencies]
