@@ -23,6 +23,10 @@ packages:
   SnapshotTesting:
     url: https://github.com/pointfreeco/swift-snapshot-testing
     from: "1.17.0"
+  # Crash + performance monitoring. Initialised in QuorumMobileApp.init.
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: "9.18.0"
 schemes:
   QuorumMobile:
     build:
@@ -57,6 +61,28 @@ targets:
     dependencies:
       - framework: CoreBridge/QuorumFFI.xcframework
         embed: false
+      - package: Sentry
+        product: Sentry
+    # Uploads dSYMs to Sentry after every build so crash reports are symbolicated.
+    # Config + auth token come from ios/sentry.properties (gitignored) via
+    # SENTRY_PROPERTIES; the phase is a no-op (warning only) if sentry-cli or the
+    # token is missing, so local Debug builds without it still succeed.
+    postBuildScripts:
+      - name: Upload dSYMs to Sentry
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - "$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)"
+        script: |
+          if [[ "$(uname -m)" == arm64 ]]; then export PATH="/opt/homebrew/bin:$PATH"; fi
+          # Local builds read org/project/token from sentry.properties; CI sets the
+          # SENTRY_* env vars instead (the file is gitignored and absent there).
+          if [ -f "$SRCROOT/sentry.properties" ]; then export SENTRY_PROPERTIES="$SRCROOT/sentry.properties"; fi
+          if ! which sentry-cli >/dev/null; then
+            echo "warning: sentry-cli not found — skipping dSYM upload (brew install getsentry/tools/sentry-cli)"
+            exit 0
+          fi
+          ERROR=$(sentry-cli debug-files upload --include-sources "$DWARF_DSYM_FOLDER_PATH" 2>&1 >/dev/null)
+          if [ ! $? -eq 0 ]; then echo "warning: sentry-cli — $ERROR"; fi
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.reflective.quorum

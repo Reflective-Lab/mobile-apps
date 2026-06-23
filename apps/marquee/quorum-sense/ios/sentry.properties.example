@@ -1,0 +1,7 @@
+# Copy to sentry.properties (gitignored) and fill in auth.token.
+# Used by the "Upload dSYMs to Sentry" build phase (sentry-cli) — not the app at runtime.
+# Create a token at: Sentry → Settings → Auth Tokens (scope: project:releases).
+defaults.url=https://de.sentry.io/
+defaults.org=reflective-labs-xa
+defaults.project=apple-ios
+auth.token=YOUR_SENTRY_AUTH_TOKEN
