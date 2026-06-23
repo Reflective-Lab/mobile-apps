@@ -6,7 +6,7 @@ import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import se.reflective.quorum.capture.SignalModality
+import uniffi.quorum_ffi.SignalModality
 
 /** A capture pipeline modelled as a Flow, exercised with Turbine. */
 private fun capturePipeline(
@@ -18,7 +18,7 @@ private fun capturePipeline(
     val draft = bridge.draftFieldSignal(inquiryThreadId, modality, rawCapture)
     emit("draft:${draft.draftId}")
     val event = bridge.appendConsentedSignal(draft)
-    emit("event:${event.eventType.wireName}")
+    emit("event:${event.eventType.name}")
 }
 
 class CapturePipelineFlowSpec : FunSpec({
@@ -31,7 +31,7 @@ class CapturePipelineFlowSpec : FunSpec({
                 rawCapture = "support is seeing confusion",
             ).test {
                 awaitItem() shouldBe "draft:draft:inq_mobile_launch_risks:field-signal-v1"
-                awaitItem() shouldBe "event:SignalDraftConsented"
+                awaitItem() shouldBe "event:SIGNAL_DRAFT_CONSENTED"
                 awaitComplete()
             }
         }

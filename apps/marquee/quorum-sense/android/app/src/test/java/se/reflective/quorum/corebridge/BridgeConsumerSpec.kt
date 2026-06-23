@@ -7,13 +7,13 @@ import io.mockk.coEvery
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import se.reflective.quorum.capture.AppendEventType
 import se.reflective.quorum.capture.Confidence
-import se.reflective.quorum.capture.ConsentState
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
-import se.reflective.quorum.capture.SignalModality
-import se.reflective.quorum.capture.SyncState
+import uniffi.quorum_ffi.AppendEventType
+import uniffi.quorum_ffi.ConsentState
+import uniffi.quorum_ffi.SignalModality
+import uniffi.quorum_ffi.SyncState
 
 /** MockK-driven tests of a consumer talking to the bridge contract. */
 class BridgeConsumerSpec : FunSpec({

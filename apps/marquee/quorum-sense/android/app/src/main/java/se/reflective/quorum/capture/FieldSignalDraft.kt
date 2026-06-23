@@ -1,47 +1,40 @@
 package se.reflective.quorum.capture
 
-enum class SignalModality(val wireName: String, val label: String) {
-    TEXT("text", "Text"),
-    VOICE_TRANSCRIPT("voice_transcript", "Voice"),
-    IMAGE_OCR_TEXT("image_ocr_text", "Photo OCR"),
-    ;
+import uniffi.quorum_ffi.AppendEventType
+import uniffi.quorum_ffi.ConsentState
+import uniffi.quorum_ffi.SignalModality
+import uniffi.quorum_ffi.SyncState
 
-    companion object {
-        fun fromWire(value: String): SignalModality? = entries.firstOrNull { it.wireName == value }
+// SignalModality, ConsentState, AppendEventType and SyncState are no longer
+// declared here: UniFFI now generates them (uniffi/quorum_ffi/quorum_ffi.kt)
+// straight from the UDL contract, so the wire enum *is* the domain enum — there
+// are no String wire values to parse and an unknown case is unrepresentable.
+// These extensions add only the host-side affordance the bindings don't emit:
+// the human-facing label. `entries` (the picker's case list) and structural
+// equality come from the generated `enum class` for free.
+
+val SignalModality.label: String
+    get() = when (this) {
+        SignalModality.TEXT -> "Text"
+        SignalModality.VOICE_TRANSCRIPT -> "Voice"
+        SignalModality.IMAGE_OCR_TEXT -> "Photo OCR"
     }
-}
 
-/** Whether a captured signal has cleared consent for sync. Mirrors Rust `ConsentState`. */
-enum class ConsentState(val wireName: String, val label: String) {
-    PENDING("pending", "Pending"),
-    CONSENTED("consented", "Consented"),
-    ;
-
-    companion object {
-        fun fromWire(value: String): ConsentState? = entries.firstOrNull { it.wireName == value }
+val ConsentState.label: String
+    get() = when (this) {
+        ConsentState.PENDING -> "Pending"
+        ConsentState.CONSENTED -> "Consented"
     }
-}
 
-/** The kind of event emitted when a draft is appended. Mirrors Rust `AppendEventType`. */
-enum class AppendEventType(val wireName: String, val label: String) {
-    SIGNAL_DRAFT_CONSENTED("SignalDraftConsented", "Signal draft consented"),
-    ;
-
-    companion object {
-        fun fromWire(value: String): AppendEventType? =
-            entries.firstOrNull { it.wireName == value }
+val AppendEventType.label: String
+    get() = when (this) {
+        AppendEventType.SIGNAL_DRAFT_CONSENTED -> "Signal draft consented"
     }
-}
 
-/** Where an appended event sits in the sync pipeline. Mirrors Rust `SyncState`. */
-enum class SyncState(val wireName: String, val label: String) {
-    QUEUED_FOR_SYNC("queued_for_sync", "Queued for sync"),
-    ;
-
-    companion object {
-        fun fromWire(value: String): SyncState? = entries.firstOrNull { it.wireName == value }
+val SyncState.label: String
+    get() = when (this) {
+        SyncState.QUEUED_FOR_SYNC -> "Queued for sync"
     }
-}
 
 /** A model confidence score constrained to `0f..1f`, mirroring Rust `Confidence`. */
 @JvmInline

@@ -3,11 +3,11 @@ package se.reflective.quorum.corebridge
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import se.reflective.quorum.capture.AppendEventType
 import se.reflective.quorum.capture.Confidence
-import se.reflective.quorum.capture.ConsentState
-import se.reflective.quorum.capture.SignalModality
-import se.reflective.quorum.capture.SyncState
+import uniffi.quorum_ffi.AppendEventType
+import uniffi.quorum_ffi.ConsentState
+import uniffi.quorum_ffi.SignalModality
+import uniffi.quorum_ffi.SyncState
 
 class PreviewQuorumCoreBridgeSpec : FunSpec({
     test("preview bridge drafts then appends with fixture markers") {

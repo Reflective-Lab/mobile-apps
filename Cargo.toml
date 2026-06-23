@@ -13,3 +13,11 @@ resolver = "2"
 edition = "2024"
 rust-version = "1.96.0"
 license = "MIT"
+
+# Emit line tables in release so the mobile FFI's debug files / dSYMs carry
+# source file:line for our Rust frames (not just function names). Without this,
+# `cargo build --release` defaults to debug = false and Sentry symbolicates Rust
+# crashes to a function name only. "line-tables-only" gives file:line at a modest
+# size cost (full DWARF would be much larger).
+[profile.release]
+debug = "line-tables-only"

@@ -6,7 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
-import se.reflective.quorum.capture.SignalModality
+import uniffi.quorum_ffi.SignalModality
 import kotlin.time.Duration.Companion.seconds
 
 /**

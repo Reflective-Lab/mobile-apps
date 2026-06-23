@@ -4,33 +4,35 @@
 //! negative cases. This integration suite adds the property, public-API-compile,
 //! and concurrency-stress coverage, all through the published FFI functions —
 //! the exact entry points Swift and Kotlin call.
+//!
+//! NB: there are no "reject unknown modality / consent" tests here. Those fields
+//! are *enums* on the wire, so an invalid value cannot be constructed — the type
+//! system enforces it at compile time, which is why this file no longer needs to.
 
 use quorum_ffi::{
-    FfiQuorumSignalDraft, QuorumError, ai_execution_home, mobile_portfolio,
-    quorum_append_consented_signal, quorum_draft_field_signal, quorum_field_signal_workflow_id,
+    AppendEventType, ConsentState, FfiQuorumSignalDraft, QuorumError, SignalModality, SyncState,
+    ai_execution_home, mobile_portfolio, quorum_append_consented_signal, quorum_draft_field_signal,
+    quorum_field_signal_workflow_id,
 };
 
-const VALID_MODALITIES: [&str; 3] = ["text", "voice_transcript", "image_ocr_text"];
+const VALID_MODALITIES: [SignalModality; 3] = [
+    SignalModality::Text,
+    SignalModality::VoiceTranscript,
+    SignalModality::ImageOcrText,
+];
 
 fn valid_draft() -> FfiQuorumSignalDraft {
+    // No Result: `modality` is an enum, so drafting can't fail.
     quorum_draft_field_signal(
         "inq_mobile_launch_risks".to_owned(),
-        "voice_transcript".to_owned(),
+        SignalModality::VoiceTranscript,
         "support is seeing confusion in every pilot".to_owned(),
     )
-    .expect("fixture modality is valid")
 }
 
 // ---------------------------------------------------------------------------
-// negative
+// negative — only the fields that are still primitives can fail.
 // ---------------------------------------------------------------------------
-
-#[test]
-fn draft_rejects_unknown_modality_with_the_offending_value() {
-    let err = quorum_draft_field_signal("inq".to_owned(), "hologram".to_owned(), "x".to_owned())
-        .expect_err("unknown modality must error");
-    assert!(matches!(err, QuorumError::InvalidModality { value } if value == "hologram"));
-}
 
 #[test]
 fn append_rejects_out_of_range_confidence() {
@@ -39,16 +41,6 @@ fn append_rejects_out_of_range_confidence() {
     assert!(matches!(
         quorum_append_consented_signal(draft),
         Err(QuorumError::ConfidenceOutOfRange { value }) if value == 2.0
-    ));
-}
-
-#[test]
-fn append_rejects_unknown_consent_state() {
-    let mut draft = valid_draft();
-    draft.consent_state = "revoked".to_owned();
-    assert!(matches!(
-        quorum_append_consented_signal(draft),
-        Err(QuorumError::InvalidConsentState { value }) if value == "revoked"
     ));
 }
 
@@ -84,28 +76,20 @@ fn public_ffi_surface_is_callable() {
 use proptest::prelude::*;
 
 proptest! {
-    /// Drafting succeeds iff the modality string is a known wire value; the error
-    /// always carries the exact offending input back to the caller.
+    /// Any valid modality drafts into a coherent, pending draft — across arbitrary
+    /// thread ids and capture text.
     #[test]
-    fn draft_accepts_exactly_the_valid_modalities(
+    fn drafting_is_coherent_for_every_modality(
         thread in ".{0,48}",
-        modality in ".{0,32}",
+        modality in prop::sample::select(VALID_MODALITIES.to_vec()),
         raw in ".{0,200}",
     ) {
-        let result = quorum_draft_field_signal(thread.clone(), modality.clone(), raw.clone());
-        if VALID_MODALITIES.contains(&modality.as_str()) {
-            let draft = result.expect("valid modality should draft");
-            prop_assert_eq!(&draft.modality, &modality);
-            prop_assert_eq!(&draft.inquiry_thread_id, &thread);
-            prop_assert_eq!(&draft.raw_capture, &raw);
-            prop_assert_eq!(&draft.consent_state, "pending");
-            prop_assert!((0.0..=1.0).contains(&draft.confidence));
-        } else {
-            match result {
-                Err(QuorumError::InvalidModality { value }) => prop_assert_eq!(value, modality),
-                other => prop_assert!(false, "expected InvalidModality, got {:?}", other),
-            }
-        }
+        let draft = quorum_draft_field_signal(thread.clone(), modality, raw.clone());
+        prop_assert_eq!(draft.modality, modality);
+        prop_assert_eq!(&draft.inquiry_thread_id, &thread);
+        prop_assert_eq!(&draft.raw_capture, &raw);
+        prop_assert_eq!(draft.consent_state, ConsentState::Pending);
+        prop_assert!((0.0..=1.0).contains(&draft.confidence));
     }
 
     /// A round-tripped valid draft always appends to a consented, queued event
@@ -116,29 +100,23 @@ proptest! {
         modality in prop::sample::select(VALID_MODALITIES.to_vec()),
         raw in ".{0,200}",
     ) {
-        let draft = quorum_draft_field_signal(thread, modality.to_owned(), raw)
-            .expect("valid modality should draft");
+        let draft = quorum_draft_field_signal(thread, modality, raw);
         let event = quorum_append_consented_signal(draft.clone()).expect("pending draft appends");
         prop_assert_eq!(&event.draft_id, &draft.draft_id);
         prop_assert_eq!(&event.inquiry_thread_id, &draft.inquiry_thread_id);
         prop_assert_eq!(&event.workflow_id, &draft.workflow_id);
-        prop_assert_eq!(&event.event_type, "SignalDraftConsented");
-        prop_assert_eq!(&event.sync_state, "queued_for_sync");
+        prop_assert_eq!(event.event_type, AppendEventType::SignalDraftConsented);
+        prop_assert_eq!(event.sync_state, SyncState::QueuedForSync);
     }
 
-    /// The boundary never panics on arbitrary append input — it returns Ok or a
-    /// typed error, mirroring how the native shells must be able to trust it.
+    /// The boundary never panics on arbitrary *confidence* — it returns Ok or a
+    /// typed error. Modality/consent can't be fuzzed any more: they're enums.
     #[test]
-    fn append_is_total_over_arbitrary_drafts(
-        modality in ".{0,16}",
+    fn append_is_total_over_arbitrary_confidence(
         confidence in proptest::num::f32::ANY,
-        consent in ".{0,16}",
     ) {
         let mut draft = valid_draft();
-        draft.modality = modality;
         draft.confidence = confidence;
-        draft.consent_state = consent;
-        // Must not panic; either outcome is acceptable here.
         let _ = quorum_append_consented_signal(draft);
     }
 }
@@ -174,10 +152,9 @@ fn concurrent_ffi_calls_do_not_deadlock_or_panic() {
                             let modality = VALID_MODALITIES[(i % 3) as usize];
                             let draft = quorum_draft_field_signal(
                                 format!("inq_{w}_{i}"),
-                                modality.to_owned(),
+                                modality,
                                 "payload under load".to_owned(),
-                            )
-                            .expect("valid modality drafts under load");
+                            );
                             let event = quorum_append_consented_signal(draft.clone())
                                 .expect("pending draft appends under load");
                             assert_eq!(event.draft_id, draft.draft_id);

@@ -1,6 +1,6 @@
 package se.reflective.quorum.platformai
 
-import se.reflective.quorum.capture.SignalModality
+import uniffi.quorum_ffi.SignalModality
 
 data class CapturedSignalInput(
     val modality: SignalModality,
