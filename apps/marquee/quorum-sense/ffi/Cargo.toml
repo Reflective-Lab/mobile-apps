@@ -16,11 +16,27 @@ name = "uniffi-bindgen"
 path = "src/bin/uniffi-bindgen.rs"
 doc = false
 
+[features]
+# Sentry crash/error reporting, on by default for the shipped mobile builds.
+# Disable (`--no-default-features`) for a lean build with no TLS/HTTP stack.
+default = ["observability"]
+observability = ["dep:sentry"]
+
 [dependencies]
 reflective-mobile-ai = { path = "../../../../crates/mobile-ai" }
 reflective-mobile-core = { path = "../../../../crates/mobile-core" }
 thiserror = "2"
 uniffi = { version = "0.31.1", features = ["cli"] }
+# ureq transport bundles rustls (no OpenSSL), so it cross-compiles cleanly to
+# iOS/Android. NB: do not also enable sentry's `rustls` feature — that is for the
+# reqwest path and pulls a second, conflicting rustls version.
+# Panics + reported errors are sent directly to the separate Rust Sentry project.
+sentry = { version = "0.34", default-features = false, features = [
+    "backtrace",
+    "contexts",
+    "panic",
+    "ureq",
+], optional = true }
 
 [build-dependencies]
 uniffi = { version = "0.31.1", features = ["build"] }

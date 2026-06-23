@@ -51,9 +51,11 @@ public struct SignalCaptureView: View {
                     LabeledContent("Consent", value: draft.consentState.label)
                     LabeledContent("Confidence", value: String(format: "%.2f", draft.confidence.value))
                     Text(draft.summary)
+                        .font(Brand.sans(15))
+                        .foregroundStyle(Brand.ink)
                     Text(draft.contradiction)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(Brand.mono(12))
+                        .foregroundStyle(Brand.inkMuted)
 
                     Button("Consent And Queue") {
                         Task {
@@ -79,11 +81,13 @@ public struct SignalCaptureView: View {
             if let errorMessage {
                 Section("Error") {
                     Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                        .font(Brand.mono(12))
+                        .foregroundStyle(Brand.danger)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Brand.paper.ignoresSafeArea())
     }
 }
 

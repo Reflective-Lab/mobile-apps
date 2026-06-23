@@ -1,9 +1,13 @@
 import Sentry
 import SwiftUI
+import UIKit
 
 @main
 struct QuorumMobileApp: App {
     init() {
+        Brand.registerFonts()
+        Self.configureNavigationBarAppearance()
+
         SentrySDK.start { options in
             // DSN is a public client key (safe to commit). From Sentry project
             // apple-ios (id 4511614599888976) → Client Keys (DSN). Org is EU-region.
@@ -23,12 +27,49 @@ struct QuorumMobileApp: App {
                 $0.lifecycle = .trace
             }
         }
+
+        // Rust core crash/error reporting → the separate Rust Sentry project
+        // (id 4511614643142736). `initObservability` is the UniFFI-generated entry
+        // point (CoreBridge); the DSN is a public client key (safe to commit).
+        #if DEBUG
+        let rustEnvironment = "debug"
+        let rustDebug = true
+        #else
+        let rustEnvironment = "production"
+        let rustDebug = false
+        #endif
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        initObservability(
+            dsn: "https://096bf7f5a5e69d38023975659d020217@o4511614588223488.ingest.de.sentry.io/4511614643142736",
+            environment: rustEnvironment,
+            release: "quorum@\(shortVersion)",
+            debug: rustDebug
+        )
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(Brand.accent)
         }
+    }
+
+    /// Brands the navigation bar: DM Serif Display large title on the paper canvas.
+    /// Fonts must already be registered (see `Brand.registerFonts()` above).
+    private static func configureNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Brand.paper)
+        appearance.shadowColor = UIColor(Brand.line)
+        if let large = UIFont(name: Brand.FontName.display, size: 34) {
+            appearance.largeTitleTextAttributes = [.font: large, .foregroundColor: UIColor(Brand.ink)]
+        }
+        if let inline = UIFont(name: Brand.FontName.sansMedium, size: 17) {
+            appearance.titleTextAttributes = [.font: inline, .foregroundColor: UIColor(Brand.ink)]
+        }
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 }
 

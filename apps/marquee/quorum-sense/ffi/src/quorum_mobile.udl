@@ -51,6 +51,16 @@ dictionary FfiQuorumAppendEvent {
 };
 
 namespace quorum_ffi {
+    // Initialise Rust-side crash/error reporting (Sentry). Idempotent — only the
+    // first call wires the client. DSN/environment/release come from the host app
+    // so Rust events land in the separate Rust Sentry project, not the app ones.
+    void init_observability(
+        string dsn,
+        string environment,
+        string release,
+        boolean debug
+    );
+
     sequence<FfiAppSummary> mobile_portfolio();
 
     [Throws=QuorumError]

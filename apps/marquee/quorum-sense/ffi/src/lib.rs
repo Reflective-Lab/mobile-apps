@@ -15,6 +15,59 @@ use reflective_mobile_core::{
 };
 
 // ---------------------------------------------------------------------------
+// Observability. Rust-side crash + error reporting via Sentry, sent directly to
+// the separate Rust project (ureq + rustls transport — no OpenSSL). The host app
+// initialises it at startup; Rust panics are captured automatically and
+// unexpected boundary errors are reported explicitly. Routine validation is not.
+// ---------------------------------------------------------------------------
+#[cfg(feature = "observability")]
+static SENTRY_GUARD: std::sync::OnceLock<sentry::ClientInitGuard> = std::sync::OnceLock::new();
+
+/// Wire up Sentry. Idempotent: only the first call initialises the client, so it
+/// is safe to invoke from `Application.onCreate` / `App.init` on every launch.
+pub fn init_observability(dsn: String, environment: String, release: String, debug: bool) {
+    #[cfg(feature = "observability")]
+    {
+        if SENTRY_GUARD.get().is_some() {
+            return;
+        }
+        let guard = sentry::init((
+            dsn,
+            sentry::ClientOptions {
+                release: Some(release.into()),
+                environment: Some(environment.into()),
+                debug,
+                // The panic integration (default with the `panic` feature) reports
+                // Rust panics — with backtraces — that UniFFI would otherwise hide.
+                ..Default::default()
+            },
+        ));
+        let _ = SENTRY_GUARD.set(guard);
+    }
+    #[cfg(not(feature = "observability"))]
+    let _ = (dsn, environment, release, debug);
+}
+
+/// Report an error only when it is an unexpected/internal failure; routine
+/// boundary-validation errors are expected and never reported.
+fn report_if_unexpected(error: &QuorumError) {
+    #[cfg(feature = "observability")]
+    if error.is_reportable() {
+        sentry::capture_error(error);
+    }
+    #[cfg(not(feature = "observability"))]
+    let _ = error;
+}
+
+/// Tap a fallible boundary result for reporting, then pass it through unchanged.
+fn observed<T>(result: Result<T, QuorumError>) -> Result<T, QuorumError> {
+    if let Err(error) = &result {
+        report_if_unexpected(error);
+    }
+    result
+}
+
+// ---------------------------------------------------------------------------
 // Boundary error. Raw foreign input (strings, floats) is mapped to typed domain
 // values here; anything that doesn't map becomes one of these errors rather than
 // a silent default. The offending value rides along for diagnostics.
@@ -31,6 +84,22 @@ pub enum QuorumError {
     UnsupportedPlatform { value: String },
     #[error("unsupported task: {value}")]
     UnsupportedTask { value: String },
+}
+
+impl QuorumError {
+    /// Whether this is an unexpected/internal failure worth a Sentry event.
+    /// Every current variant is a routine boundary-validation error (the caller
+    /// sent something invalid), so this is `false` today; future *internal*
+    /// failure variants (storage, sync, …) should return `true`.
+    fn is_reportable(&self) -> bool {
+        match self {
+            QuorumError::InvalidModality { .. }
+            | QuorumError::InvalidConsentState { .. }
+            | QuorumError::ConfidenceOutOfRange { .. }
+            | QuorumError::UnsupportedPlatform { .. }
+            | QuorumError::UnsupportedTask { .. } => false,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -84,16 +153,16 @@ pub fn mobile_portfolio() -> Vec<FfiAppSummary> {
 }
 
 pub fn ai_execution_home(platform: String, task: String) -> Result<String, QuorumError> {
-    let platform_value = match parse_platform(&platform) {
-        Some(value) => value,
-        None => return Err(QuorumError::UnsupportedPlatform { value: platform }),
-    };
-    let task_value = match parse_task(&task) {
-        Some(value) => value,
-        None => return Err(QuorumError::UnsupportedTask { value: task }),
-    };
-
-    Ok(execution_home_label(recommended_home(platform_value, task_value)).to_owned())
+    observed((|| {
+        let platform_value =
+            parse_platform(&platform).ok_or_else(|| QuorumError::UnsupportedPlatform {
+                value: platform.clone(),
+            })?;
+        let task_value = parse_task(&task).ok_or_else(|| QuorumError::UnsupportedTask {
+            value: task.clone(),
+        })?;
+        Ok(execution_home_label(recommended_home(platform_value, task_value)).to_owned())
+    })())
 }
 
 pub fn quorum_field_signal_workflow_id() -> String {
@@ -105,20 +174,23 @@ pub fn quorum_draft_field_signal(
     modality: String,
     raw_capture: String,
 ) -> Result<FfiQuorumSignalDraft, QuorumError> {
-    let modality_value = match SignalModality::parse(&modality) {
-        Some(value) => value,
-        None => return Err(QuorumError::InvalidModality { value: modality }),
-    };
-
-    let draft = draft_field_signal(&inquiry_thread_id, modality_value, &raw_capture);
-    Ok(to_ffi_draft(&draft))
+    observed((|| {
+        let modality_value =
+            SignalModality::parse(&modality).ok_or_else(|| QuorumError::InvalidModality {
+                value: modality.clone(),
+            })?;
+        let draft = draft_field_signal(&inquiry_thread_id, modality_value, &raw_capture);
+        Ok(to_ffi_draft(&draft))
+    })())
 }
 
 pub fn quorum_append_consented_signal(
     draft: FfiQuorumSignalDraft,
 ) -> Result<FfiQuorumAppendEvent, QuorumError> {
-    let domain = from_ffi_draft(draft)?;
-    Ok(to_ffi_event(&append_consented_signal(&domain)))
+    observed((|| {
+        let domain = from_ffi_draft(draft)?;
+        Ok(to_ffi_event(&append_consented_signal(&domain)))
+    })())
 }
 
 // ---------------------------------------------------------------------------

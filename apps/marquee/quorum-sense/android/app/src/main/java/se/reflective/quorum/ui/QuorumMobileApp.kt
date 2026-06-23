@@ -30,10 +30,11 @@ import se.reflective.quorum.capture.QuorumAppendEvent
 import se.reflective.quorum.capture.SignalModality
 import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
 import se.reflective.quorum.corebridge.QuorumCoreBridge
+import se.reflective.quorum.ui.theme.QuorumTheme
 
 @Composable
 fun QuorumMobileApp(bridge: QuorumCoreBridge = PreviewQuorumCoreBridge()) {
-    MaterialTheme {
+    QuorumTheme {
         SignalCaptureScreen(bridge = bridge)
     }
 }

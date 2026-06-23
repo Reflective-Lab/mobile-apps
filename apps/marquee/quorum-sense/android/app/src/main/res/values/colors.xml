@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reflective brand palette, mirrored from apps.reflective.se/quorum-sense. -->
+<resources>
+    <color name="paper">#FFF7F8F3</color>
+    <color name="ink">#FF101417</color>
+    <color name="accent">#FF177E66</color>
+    <!-- Adaptive launcher icon background (light brand canvas). -->
+    <color name="ic_launcher_background">#FFF7F8F3</color>
+</resources>
