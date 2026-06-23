@@ -20,7 +20,13 @@ public enum CoreBridgeError: Error {
 /// This adapter is the *only* place the FFI wire DTOs (`Ffi*`, string-typed)
 /// are translated to and from the Swift domain types — mirroring the boundary
 /// mapping the Rust side performs in `quorum-ffi/src/lib.rs`.
-public struct QuorumCoreBridgeFFI: QuorumCoreBridge {
+///
+/// It is an `actor` so the synchronous FFI calls run on the actor's executor,
+/// off the main thread (ADR 0003): a `@MainActor` view `await`s these methods,
+/// the Rust work happens off-main, and the `Sendable` result returns to the
+/// main actor — the UI is never blocked. This matches the Android bridge, which
+/// runs the same FFI on `Dispatchers.Default`.
+public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
     public init() {}
 
     public func workflowId() async -> String {
