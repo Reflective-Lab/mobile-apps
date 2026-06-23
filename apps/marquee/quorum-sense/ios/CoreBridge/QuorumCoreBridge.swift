@@ -1,7 +1,10 @@
 import Foundation
 
-@MainActor
-public protocol QuorumCoreBridge {
+// Not @MainActor: the production bridge is an actor that runs the synchronous
+// Rust FFI off the main thread (ADR 0003). Sendable so a `@MainActor` view can
+// hold `any QuorumCoreBridge` and `await` across the actor boundary; the async
+// methods let an actor- or main-actor-isolated witness satisfy them.
+public protocol QuorumCoreBridge: Sendable {
     func workflowId() async -> String
     func draftFieldSignal(
         inquiryThreadId: String,
@@ -12,9 +15,7 @@ public protocol QuorumCoreBridge {
 }
 
 public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
-    // nonisolated so it can be used as a default argument (evaluated off the
-    // main actor) even though QuorumCoreBridge is @MainActor-isolated.
-    public nonisolated init() {}
+    public init() {}
 
     public func workflowId() async -> String {
         "quorum.field_signal_capture.v1"
