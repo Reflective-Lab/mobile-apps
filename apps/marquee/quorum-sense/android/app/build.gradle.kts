@@ -83,17 +83,23 @@ sentry {
     org.set("reflective-labs-xa")
     projectName.set("android")
 
-    // R8/ProGuard mappings — only meaningful once release minification is enabled
-    // (no buildTypes { release { isMinifyEnabled = true } } yet, so currently a no-op).
-    includeProguardMapping.set(sentryUploads)
-    autoUploadProguardMapping.set(sentryUploads)
-
-    // Native (Rust/UniFFI .so) debug symbols so native crashes symbolicate.
-    uploadNativeSymbols.set(sentryUploads)
-    includeNativeSources.set(sentryUploads)
-
-    // Source-context: shows the offending source lines in Sentry.
-    includeSourceContext.set(sentryUploads)
-    autoUploadSourceContext.set(sentryUploads)
+    // io.sentry.android.gradle 6.12.0 is incompatible with Gradle 8.10.2: its
+    // SentryCliExecTask uploads fail to configure (missing
+    // Exec.setIgnoreExitValue) and its bytecode tracing instrumentation can't
+    // resolve Compose classes, which corrupts the instrumented-test APK. So all
+    // build-time plugin features are disabled until the plugin is bumped to a
+    // Gradle-8.10-compatible release (tracked TODO). Runtime crash reporting is
+    // unaffected — it runs off the AndroidManifest DSN + the Sentry SDK.
+    @Suppress("UNUSED_EXPRESSION")
+    sentryUploads // referenced so the gating var stays documented until re-enabled
+    includeProguardMapping.set(false)
+    autoUploadProguardMapping.set(false)
+    uploadNativeSymbols.set(false)
+    includeNativeSources.set(false)
+    includeSourceContext.set(false)
+    autoUploadSourceContext.set(false)
+    tracingInstrumentation {
+        enabled.set(false)
+    }
 }
 
