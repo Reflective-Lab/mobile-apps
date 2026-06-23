@@ -12,7 +12,6 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
 CRATE=quorum-ffi
-UDL=apps/marquee/quorum-sense/ffi/src/quorum_mobile.udl
 ANDROID_APP=apps/marquee/quorum-sense/android/app
 
 JNI_LIBS_DIR="$ANDROID_APP/src/main/jniLibs"
@@ -45,10 +44,16 @@ cargo ndk -t arm64-v8a -t x86_64 \
     build --release -p "$CRATE"
 
 # Generate Kotlin bindings into app/src/main/java/uniffi/...
-echo "==> generating Kotlin bindings"
+# Library mode (--library <.so>): bindgen reads the real cdylib name from the
+# compiled library, so the generated loader looks for `libquorum_ffi.so` (the
+# crate's [lib] name). UDL mode (`generate <udl>`) instead defaults the loaded
+# name to `libuniffi_quorum_ffi.so`, which does not exist → UnsatisfiedLinkError
+# at runtime on Android. (iOS is unaffected: it static-links the xcframework.)
+echo "==> generating Kotlin bindings (library mode)"
 mkdir -p "$KOTLIN_OUT"
 cargo run -p "$CRATE" --bin uniffi-bindgen --quiet -- \
-    generate "$UDL" --language kotlin --out-dir "$KOTLIN_OUT"
+    generate --library "$JNI_LIBS_DIR/arm64-v8a/libquorum_ffi.so" \
+    --language kotlin --out-dir "$KOTLIN_OUT"
 
 echo "✓ jniLibs: $JNI_LIBS_DIR"
 echo "✓ Kotlin bindings: $KOTLIN_OUT/uniffi/quorum_ffi/"
