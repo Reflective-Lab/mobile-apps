@@ -1,11 +1,13 @@
 # cargo-deny configuration — mobile dependency boundary.
 #
 # Enforces EPIC.md Epic 4: "dependency audits prevent server-only crates from
-# entering mobile builds" / "CI blocks forbidden server-only dependencies in
-# mobile FFI crates". Everything in this workspace cross-compiles to iOS/Android
-# and must stay free of async runtimes, web servers/clients, databases, and
-# cloud SDKs. Reuse of canonical crates (e.g. quorum-domain) is welcome — this
-# gate is what keeps that reuse from silently dragging the server in.
+# entering mobile builds". The mobile Rust core IS a client — it opens network
+# connections to its backend and ships crash reports to Sentry, so async runtimes
+# and HTTP clients (tokio, reqwest, hyper, rustls) are EXPECTED and allowed. What
+# must never enter a mobile build is SERVER capability: web/RPC server frameworks,
+# server-database drivers, message brokers, and cloud-provider SDKs — the
+# "device proposes; server promotes" boundary (ADR 0002). This is also what keeps
+# canonical-crate reuse (quorum-domain) from dragging the server in.
 #
 # Run: cargo deny check bans
 
@@ -13,30 +15,32 @@
 multiple-versions = "allow"   # not what this gate is about
 wildcards = "allow"
 
-# Server-only crates that must never reach a mobile build. Listed by exact name
-# (cargo-deny bans do not glob); extend as new offenders appear.
+# Server-capability crates that must never reach a mobile (client) build. Listed
+# by exact name (cargo-deny bans do not glob); extend as new offenders appear.
+# NB: client networking (tokio/reqwest/hyper/rustls) is intentionally NOT here.
 deny = [
-    # async runtimes
-    { name = "tokio" },
-    { name = "async-std" },
-    { name = "smol" },
-    # web servers / clients / RPC
+    # web / RPC server frameworks (the phone is a client, never a server)
     { name = "axum" },
-    { name = "hyper" },
-    { name = "warp" },
     { name = "actix-web" },
-    { name = "reqwest" },
-    { name = "tonic" },
-    { name = "tower-http" },
-    # databases
+    { name = "warp" },
+    { name = "rocket" },
+    { name = "poem" },
+    # server-database drivers (mobile talks to its backend, not a DB directly)
     { name = "sqlx" },
-    { name = "sea-orm" },
     { name = "diesel" },
+    { name = "sea-orm" },
+    { name = "tokio-postgres" },
+    { name = "postgres" },
+    { name = "mysql_async" },
     { name = "mongodb" },
     { name = "redis" },
-    # message/streaming + cloud
+    # message brokers / streaming infra
     { name = "rdkafka" },
+    { name = "lapin" },
+    # cloud-provider / server SDKs
     { name = "rusoto_core" },
+    { name = "aws-config" },
+    { name = "google-cloud-storage" },
 ]
 
 [advisories]
