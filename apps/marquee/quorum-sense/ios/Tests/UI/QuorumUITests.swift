@@ -2,6 +2,10 @@ import XCTest
 
 /// End-to-end UI automation of the capture → consent → queue flow, driving the
 /// real app (which runs against the Rust core via QuorumCoreBridgeFFI).
+///
+/// `@MainActor` because XCUIApplication/XCUIElement are main-actor-isolated under
+/// Swift 6 (Xcode 16+); without it the XCUI calls fail to compile.
+@MainActor
 final class QuorumUITests: XCTestCase {
     override func setUp() {
         super.setUp()
