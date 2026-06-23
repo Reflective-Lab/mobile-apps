@@ -471,9 +471,20 @@ jobs:
       # source context; ProGuard mapping too once release minification is on).
       # Authenticated by SENTRY_AUTH_TOKEN. Produces an unsigned release APK —
       # no signing config needed just to generate + upload symbols.
+      #
+      # Non-fatal on a missing token: if SENTRY_AUTH_TOKEN is empty (e.g. secret
+      # not yet configured) we still build the release variant — which validates
+      # the release build — but skip -PsentryUpload so no upload task runs and the
+      # job stays green instead of erroring on auth.
       - name: Assemble Release + upload symbols
         working-directory: apps/marquee/quorum-sense/android
-        run: ./gradlew :app:assembleRelease -PsentryUpload --no-daemon
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::warning::SENTRY_AUTH_TOKEN not set — building release without Sentry symbol upload."
+            ./gradlew :app:assembleRelease --no-daemon
+          else
+            ./gradlew :app:assembleRelease -PsentryUpload --no-daemon
+          fi
 
   scaffold:
     name: Mobile Scaffold
