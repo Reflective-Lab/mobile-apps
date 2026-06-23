@@ -83,23 +83,20 @@ sentry {
     org.set("reflective-labs-xa")
     projectName.set("android")
 
-    // io.sentry.android.gradle 6.12.0 is incompatible with Gradle 8.10.2: its
-    // SentryCliExecTask uploads fail to configure (missing
-    // Exec.setIgnoreExitValue) and its bytecode tracing instrumentation can't
-    // resolve Compose classes, which corrupts the instrumented-test APK. So all
-    // build-time plugin features are disabled until the plugin is bumped to a
-    // Gradle-8.10-compatible release (tracked TODO). Runtime crash reporting is
-    // unaffected — it runs off the AndroidManifest DSN + the Sentry SDK.
-    @Suppress("UNUSED_EXPRESSION")
-    sentryUploads // referenced so the gating var stays documented until re-enabled
-    includeProguardMapping.set(false)
-    autoUploadProguardMapping.set(false)
-    uploadNativeSymbols.set(false)
-    includeNativeSources.set(false)
-    includeSourceContext.set(false)
-    autoUploadSourceContext.set(false)
+    // The wrapper now pins Gradle 8.14.2, which makes io.sentry.android.gradle
+    // 6.12.0 compatible again (Exec.setIgnoreExitValue exists; tracing can resolve
+    // Compose classes). Build-time features are re-enabled, gated on -PsentryUpload
+    // so only the release-upload path runs them: debug/instrumented builds (no
+    // flag) stay lean and the instrumented test is unaffected, while
+    // release + upload builds get full symbolication + tracing.
+    includeProguardMapping.set(sentryUploads)
+    autoUploadProguardMapping.set(sentryUploads)
+    uploadNativeSymbols.set(sentryUploads)
+    includeNativeSources.set(sentryUploads)
+    includeSourceContext.set(sentryUploads)
+    autoUploadSourceContext.set(sentryUploads)
     tracingInstrumentation {
-        enabled.set(false)
+        enabled.set(sentryUploads)
     }
 }
 
