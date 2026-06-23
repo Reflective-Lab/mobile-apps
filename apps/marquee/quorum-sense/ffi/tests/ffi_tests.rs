@@ -182,7 +182,10 @@ fn concurrent_ffi_calls_do_not_deadlock_or_panic() {
                                 .expect("pending draft appends under load");
                             assert_eq!(event.draft_id, draft.draft_id);
                             // Also exercise the throwing AI-routing path.
-                            let _ = ai_execution_home("ios".to_owned(), "structured-extraction".to_owned());
+                            let _ = ai_execution_home(
+                                "ios".to_owned(),
+                                "structured-extraction".to_owned(),
+                            );
                             completed.fetch_add(1, Ordering::Relaxed);
                         }
                     })
@@ -201,10 +204,14 @@ fn concurrent_ffi_calls_do_not_deadlock_or_panic() {
             assert_eq!(completed.load(Ordering::Relaxed), WORKERS * ITERS);
         }
         Err(mpsc::RecvTimeoutError::Timeout) => {
-            panic!("FFI stress scenario did not finish within {DEADLINE:?} — possible deadlock/hang");
+            panic!(
+                "FFI stress scenario did not finish within {DEADLINE:?} — possible deadlock/hang"
+            );
         }
         Err(mpsc::RecvTimeoutError::Disconnected) => {
-            coordinator.join().expect("coordinator thread panicked under load");
+            coordinator
+                .join()
+                .expect("coordinator thread panicked under load");
             panic!("FFI stress coordinator disconnected without signalling completion");
         }
     }

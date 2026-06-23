@@ -130,7 +130,7 @@ jobs:
         run: |
           xcodegen generate
           xcodebuild \
-            -scheme ReflectiveShell \
+            -scheme App \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             build

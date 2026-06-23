@@ -1,12 +1,13 @@
 //! Cross-cutting tests for the Quorum field-signal-capture domain.
 //!
 //! Organised by intent so the suite doubles as documentation:
-//!   * unit       — happy-path behaviour on representative input
-//!   * negative   — invalid/boundary input is rejected, not silently accepted
-//!   * property   — invariants hold across randomised input (proptest)
-//!   * compile    — the public API surface stays callable (this file linking is the test)
-//!   * stress     — the pure core survives heavy concurrent load without
-//!                  panicking, deadlocking, or hanging
+//!
+//! * unit — happy-path behaviour on representative input
+//! * negative — invalid/boundary input is rejected, not silently accepted
+//! * property — invariants hold across randomised input (proptest)
+//! * compile — the public API surface stays callable (this file linking is the test)
+//! * stress — the pure core survives heavy concurrent load without panicking,
+//!   deadlocking, or hanging
 //!
 //! These exercise only the public API (integration-test crate boundary), which
 //! is itself the "does the published surface still compile" guarantee.
@@ -26,10 +27,17 @@ const SAMPLE_CAPTURE: &str =
 
 #[test]
 fn draft_then_append_carries_ids_through() {
-    let draft = draft_field_signal("inq_mobile_launch_risks", SignalModality::VoiceTranscript, SAMPLE_CAPTURE);
+    let draft = draft_field_signal(
+        "inq_mobile_launch_risks",
+        SignalModality::VoiceTranscript,
+        SAMPLE_CAPTURE,
+    );
 
     assert_eq!(draft.workflow_id.as_str(), FIELD_SIGNAL_CAPTURE_WORKFLOW_ID);
-    assert_eq!(draft.draft_id.as_str(), "draft:inq_mobile_launch_risks:field-signal-v1");
+    assert_eq!(
+        draft.draft_id.as_str(),
+        "draft:inq_mobile_launch_risks:field-signal-v1"
+    );
     assert_eq!(draft.inquiry_thread_id.as_str(), "inq_mobile_launch_risks");
     assert_eq!(draft.modality, SignalModality::VoiceTranscript);
     assert_eq!(draft.consent_state, ConsentState::Pending);
@@ -46,7 +54,10 @@ fn draft_then_append_carries_ids_through() {
 #[test]
 fn empty_capture_falls_back_to_a_clarification_summary() {
     let draft = draft_field_signal("inq", SignalModality::Text, "   \n\t  ");
-    assert_eq!(draft.summary, "Empty capture needs participant clarification");
+    assert_eq!(
+        draft.summary,
+        "Empty capture needs participant clarification"
+    );
 }
 
 #[test]
@@ -56,7 +67,10 @@ fn wire_labels_are_stable() {
     assert_eq!(SignalModality::ImageOcrText.as_str(), "image_ocr_text");
     assert_eq!(ConsentState::Pending.as_str(), "pending");
     assert_eq!(ConsentState::Consented.as_str(), "consented");
-    assert_eq!(AppendEventType::SignalDraftConsented.as_str(), "SignalDraftConsented");
+    assert_eq!(
+        AppendEventType::SignalDraftConsented.as_str(),
+        "SignalDraftConsented"
+    );
     assert_eq!(SyncState::QueuedForSync.as_str(), "queued_for_sync");
 }
 
@@ -250,7 +264,9 @@ fn concurrent_draft_append_does_not_deadlock_or_panic() {
         }
         Err(mpsc::RecvTimeoutError::Disconnected) => {
             // Coordinator died (a worker panicked); surface it.
-            coordinator.join().expect("coordinator thread panicked under load");
+            coordinator
+                .join()
+                .expect("coordinator thread panicked under load");
             panic!("stress coordinator disconnected without signalling completion");
         }
     }
