@@ -43,6 +43,12 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: Dependency boundary (bans server-only crates — EPIC 4)
+        run: cargo deny check bans
+
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
 
