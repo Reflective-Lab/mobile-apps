@@ -1,12 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Required so the Sentry SDK can transmit events (also merged in from the SDK AAR). -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.QuorumMobile">
+        <!-- DSN is a public client key (safe to commit). Replace with the value from
+             Sentry → Settings → Projects → <android project> → Client Keys (DSN).
+             Its presence makes the SDK auto-initialise; no code needed in MainActivity. -->
+        <meta-data android:name="io.sentry.dsn" android:value="https://5c45dced4ef26086a101ea0da84a76d1@o4511614588223488.ingest.de.sentry.io/4511614633771088" />
+        <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
+        <meta-data android:name="io.sentry.environment" android:value="production" />
         <activity
             android:name=".app.MainActivity"
             android:exported="true">

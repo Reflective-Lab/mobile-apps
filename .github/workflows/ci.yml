@@ -43,8 +43,14 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      - name: Test
-        run: cargo test --workspace --locked
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Test (nextest — unit, negative, property, golden, contract, stress)
+        run: cargo nextest run --workspace
+
+      - name: Doctests (nextest does not run these)
+        run: cargo test --workspace --locked --doc
 
       - name: Docs
         run: cargo doc --workspace --no-deps --locked
@@ -53,11 +59,23 @@ jobs:
     name: Quorum iOS Product App
     runs-on: macos-15
     timeout-minutes: 30
+    # Authenticates the "Upload dSYMs to Sentry" build phase. The phase is a no-op
+    # on the Debug simulator build below (Debug emits DWARF, no dSYM); it activates
+    # on dSYM-producing Release/archive builds. Add SENTRY_AUTH_TOKEN as a repo
+    # secret (Sentry → Auth Tokens, scope project:releases).
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_URL: https://de.sentry.io/
+      SENTRY_ORG: reflective-labs-xa
+      SENTRY_PROJECT: apple-ios
     steps:
       - uses: actions/checkout@v4
 
       - name: Install xcodegen + just
         run: brew install xcodegen just
+
+      - name: Install sentry-cli (for dSYM upload on release builds)
+        run: brew install getsentry/tools/sentry-cli
 
       - name: Install Rust toolchain
         run: rustup toolchain install 1.96.0 --profile minimal
@@ -91,6 +109,16 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             build
+
+      # Swift Testing (unit/property/stress) + SnapshotTesting golden + XCUITest.
+      # The committed .dump snapshots are OS-independent, so any modern simulator works.
+      - name: Test Quorum iOS app (Swift Testing + SnapshotTesting + XCUITest)
+        working-directory: apps/marquee/quorum-sense/ios
+        run: |
+          xcodebuild test \
+            -scheme QuorumMobile \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -derivedDataPath build
 
   ios-smoke-shell:
     name: iOS Smoke Shell (UniFFI + xcodebuild)
@@ -194,6 +222,258 @@ jobs:
 
       - name: Build Android smoke shell (UniFFI + assembleDebug)
         run: just android-build
+
+  android-unit:
+    name: Quorum Android Unit Tests (Kotest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 ndk;27.1.12297006"
+
+      - name: Export ANDROID_NDK_HOME
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install Android rustup targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-android-product-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-android-product-cargo-
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-product-${{ hashFiles('apps/marquee/quorum-sense/android/**/*.gradle.kts', 'apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-product-
+
+      # The app module imports the generated UniFFI bindings, so they must exist
+      # before Gradle compiles the (main + test) sources.
+      - name: Generate Quorum FFI bindings + jniLibs
+        run: just quorum-android-uniffi
+
+      - name: Unit tests (Kotest + MockK + Turbine)
+        working-directory: apps/marquee/quorum-sense/android
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+  android-instrumented:
+    name: Quorum Android Instrumented Tests (Compose + FFI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 ndk;27.1.12297006"
+
+      - name: Export ANDROID_NDK_HOME
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install Android rustup targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      # Builds the native lib (jniLibs) the on-device FFI test loads.
+      - name: Generate Quorum FFI bindings + jniLibs
+        run: just quorum-android-uniffi
+
+      - name: Instrumented tests on emulator (Compose UI + FFI round-trip)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          working-directory: apps/marquee/quorum-sense/android
+          script: ./gradlew :app:connectedDebugAndroidTest --no-daemon
+
+  ios-release-symbols:
+    name: iOS Release dSYM Upload (Sentry)
+    runs-on: macos-15
+    timeout-minutes: 30
+    # main pushes only: PR builds (incl. forks) can't read the secret, and we
+    # don't want PR/CI builds uploaded to Sentry.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_URL: https://de.sentry.io/
+      SENTRY_ORG: reflective-labs-xa
+      SENTRY_PROJECT: apple-ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen + just
+        run: brew install xcodegen just
+
+      - name: Install sentry-cli
+        run: brew install getsentry/tools/sentry-cli
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install iOS rustup targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-ios-release-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-ios-release-cargo-
+
+      - name: Build Quorum FFI and generate project
+        run: just quorum-ios-gen
+
+      # Release build emits dSYMs (DEBUG_INFORMATION_FORMAT=dwarf-with-dsym); the
+      # project's "Upload dSYMs to Sentry" build phase then uploads them via
+      # sentry-cli (authenticated by the SENTRY_* env above). Signing is disabled
+      # so no certs/profiles are needed just to produce + upload symbols.
+      - name: Build Release (device arch) and upload dSYMs
+        working-directory: apps/marquee/quorum-sense/ios
+        run: |
+          xcodebuild \
+            -scheme QuorumMobile \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+  android-release-symbols:
+    name: Android Release Symbol Upload (Sentry)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 ndk;27.1.12297006"
+
+      - name: Export ANDROID_NDK_HOME
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install Android rustup targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-android-release-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-android-release-cargo-
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-release-${{ hashFiles('apps/marquee/quorum-sense/android/**/*.gradle.kts', 'apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-release-
+
+      - name: Generate Quorum FFI bindings + jniLibs
+        run: just quorum-android-uniffi
+
+      # -PsentryUpload enables the plugin's upload tasks (native .so symbols +
+      # source context; ProGuard mapping too once release minification is on).
+      # Authenticated by SENTRY_AUTH_TOKEN. Produces an unsigned release APK —
+      # no signing config needed just to generate + upload symbols.
+      - name: Assemble Release + upload symbols
+        working-directory: apps/marquee/quorum-sense/android
+        run: ./gradlew :app:assembleRelease -PsentryUpload --no-daemon
 
   scaffold:
     name: Mobile Scaffold

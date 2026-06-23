@@ -1,0 +1,28 @@
+# Quorum iOS CLI tasks
+
+# Root-relative path to the iOS app folder that contains project.yml
+IOS_DIR := "apps/marquee/quorum-sense/ios"
+SCHEME := "QuorumMobile"
+PROJECT := "QuorumMobile.xcodeproj"
+
+# Generate Xcode project with XcodeGen
+quorum-ios-gen:
+	cd $(IOS_DIR) && xcodegen generate
+
+# Generate UniFFI bindings for the Rust core (script expected at repo root)
+quorum-ios-uniffi:
+	bash scripts/build-mobile-ffi-ios.sh
+
+# Build the app for the iOS Simulator
+quorum-ios-build device="iPhone 16":
+	just quorum-ios-uniffi
+	cd $(IOS_DIR) && xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination 'platform=iOS Simulator,name=$(device)' -configuration Debug build
+
+# Archive for App Store distribution (requires signing)
+quorum-ios-archive:
+	just quorum-ios-uniffi
+	cd $(IOS_DIR) && xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Release -sdk iphoneos -archivePath build/$(SCHEME).xcarchive -destination 'generic/platform=iOS' archive -allowProvisioningUpdates
+
+# Optional: open the generated Xcode project
+quorum-ios-open:
+	cd $(IOS_DIR) && open $(PROJECT)

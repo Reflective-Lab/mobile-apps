@@ -1,0 +1,5 @@
+# Copy to app/sentry.properties (gitignored) and fill in auth.token.
+# Read by the Sentry Android Gradle plugin for mapping + source-context upload.
+# In CI, prefer the SENTRY_AUTH_TOKEN env var instead of this file.
+# Create a token at: Sentry → Settings → Auth Tokens (scope: project:releases).
+auth.token=YOUR_SENTRY_AUTH_TOKEN
