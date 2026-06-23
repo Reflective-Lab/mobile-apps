@@ -2,29 +2,24 @@ package se.reflective.quorum.corebridge
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import se.reflective.quorum.capture.AppendEventType
 import se.reflective.quorum.capture.Confidence
-import se.reflective.quorum.capture.ConsentState
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
-import se.reflective.quorum.capture.SignalModality
-import se.reflective.quorum.capture.SyncState
 import uniffi.quorum_ffi.FfiQuorumAppendEvent
 import uniffi.quorum_ffi.FfiQuorumSignalDraft
+import uniffi.quorum_ffi.SignalModality
 import uniffi.quorum_ffi.quorumAppendConsentedSignal
 import uniffi.quorum_ffi.quorumDraftFieldSignal
 import uniffi.quorum_ffi.quorumFieldSignalWorkflowId
 
 /**
  * Raised when the Rust core returns a value this app build cannot map into a
- * domain type (a core/app version skew). Distinct from the generated
- * `QuorumException`, which the FFI functions themselves throw when the *core*
- * rejects input.
+ * domain type. With modality/consent/event/sync now enums on the wire, the only
+ * remaining unmappable value is a confidence outside `0..1` (a float the UDL
+ * can't constrain). Distinct from the generated `QuorumException`, which the FFI
+ * functions themselves throw when the *core* rejects input.
  */
 sealed class CoreBridgeException(message: String) : Exception(message) {
-    class UnrecognizedCoreValue(val field: String, val value: String) :
-        CoreBridgeException("core returned unrecognized $field: $value")
-
     class ConfidenceOutOfRange(val value: Float) :
         CoreBridgeException("core returned confidence $value outside 0..1")
 }
@@ -38,10 +33,11 @@ sealed class CoreBridgeException(message: String) : Exception(message) {
  * Both are generated and gitignored, so this file does not compile until that
  * script has run.
  *
- * This adapter is the *only* place the FFI wire DTOs (`Ffi*`, string/float-typed)
- * are translated to and from the domain types, mirroring `quorum-ffi/src/lib.rs`
- * and the iOS `QuorumCoreBridgeFFI`. The synchronous FFI runs off the main
- * dispatcher (ADR 0003) so the UI thread is never blocked.
+ * This adapter is the *only* place the FFI wire DTOs (`Ffi*`) are translated to
+ * and from the domain types, mirroring `quorum-ffi/src/lib.rs` and the iOS
+ * `QuorumCoreBridgeFFI`. The closed-set fields are enums on the wire now, so they
+ * cross unchanged; only `confidence` (a float) is validated. The synchronous FFI
+ * runs off the main dispatcher (ADR 0003) so the UI thread is never blocked.
  */
 class QuorumCoreBridgeFFI : QuorumCoreBridge {
     override suspend fun workflowId(): String =
@@ -53,7 +49,7 @@ class QuorumCoreBridgeFFI : QuorumCoreBridge {
         rawCapture: String,
     ): FieldSignalDraft =
         withContext(Dispatchers.Default) {
-            quorumDraftFieldSignal(inquiryThreadId, modality.wireName, rawCapture).toDomain()
+            quorumDraftFieldSignal(inquiryThreadId, modality, rawCapture).toDomain()
         }
 
     override suspend fun appendConsentedSignal(draft: FieldSignalDraft): QuorumAppendEvent =
@@ -61,27 +57,23 @@ class QuorumCoreBridgeFFI : QuorumCoreBridge {
             quorumAppendConsentedSignal(draft.toFfi()).toDomain()
         }
 
-    // Boundary mapping (FFI wire DTO <-> domain) — the single home for
-    // String/Float <-> domain conversion on this platform.
+    // Boundary mapping (FFI wire DTO <-> domain). The closed sets are enums on the
+    // wire and cross as-is; only the float `confidence` still needs validation.
 
     private fun FfiQuorumSignalDraft.toDomain(): FieldSignalDraft {
-        val parsedModality = SignalModality.fromWire(modality)
-            ?: throw CoreBridgeException.UnrecognizedCoreValue("modality", modality)
-        val parsedConsent = ConsentState.fromWire(consentState)
-            ?: throw CoreBridgeException.UnrecognizedCoreValue("consentState", consentState)
         val parsedConfidence = Confidence.of(confidence)
             ?: throw CoreBridgeException.ConfidenceOutOfRange(confidence)
         return FieldSignalDraft(
             workflowId = workflowId,
             draftId = draftId,
             inquiryThreadId = inquiryThreadId,
-            modality = parsedModality,
+            modality = modality,
             rawCapture = rawCapture,
             summary = summary,
             latentNeed = latentNeed,
             contradiction = contradiction,
             confidence = parsedConfidence,
-            consentState = parsedConsent,
+            consentState = consentState,
         )
     }
 
@@ -90,26 +82,21 @@ class QuorumCoreBridgeFFI : QuorumCoreBridge {
             workflowId = workflowId,
             draftId = draftId,
             inquiryThreadId = inquiryThreadId,
-            modality = modality.wireName,
+            modality = modality,
             rawCapture = rawCapture,
             summary = summary,
             latentNeed = latentNeed,
             contradiction = contradiction,
             confidence = confidence.value,
-            consentState = consentState.wireName,
+            consentState = consentState,
         )
 
-    private fun FfiQuorumAppendEvent.toDomain(): QuorumAppendEvent {
-        val parsedType = AppendEventType.fromWire(eventType)
-            ?: throw CoreBridgeException.UnrecognizedCoreValue("eventType", eventType)
-        val parsedSync = SyncState.fromWire(syncState)
-            ?: throw CoreBridgeException.UnrecognizedCoreValue("syncState", syncState)
-        return QuorumAppendEvent(
+    private fun FfiQuorumAppendEvent.toDomain(): QuorumAppendEvent =
+        QuorumAppendEvent(
             workflowId = workflowId,
-            eventType = parsedType,
+            eventType = eventType,
             draftId = draftId,
             inquiryThreadId = inquiryThreadId,
-            syncState = parsedSync,
+            syncState = syncState,
         )
-    }
 }

@@ -60,12 +60,6 @@ struct SeededRNG: RandomNumberGenerator {
     }
 }
 
-func randomWireLikeString(_ rng: inout SeededRNG) -> String {
-    let length = Int(rng.next() % 12)
-    let alphabet = Array("abcdefghijklmnopqrstuvwxyz_")
-    return String((0..<length).map { _ in alphabet[Int(rng.next() % UInt64(alphabet.count))] })
-}
-
 /// Fixture draft used by snapshot and boundary tests.
 @MainActor
 func fixtureDraft() -> FieldSignalDraft {

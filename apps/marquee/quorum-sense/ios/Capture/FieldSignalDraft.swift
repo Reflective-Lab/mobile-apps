@@ -1,11 +1,20 @@
 import Foundation
 
-public enum SignalModality: String, CaseIterable, Identifiable, Sendable {
-    case text
-    case voiceTranscript = "voice_transcript"
-    case imageOcrText = "image_ocr_text"
+// SignalModality, ConsentState, AppendEventType and SyncState are no longer
+// declared here: UniFFI now generates them (CoreBridge/QuorumFFI.swift) straight
+// from the UDL contract, so the wire enum *is* the domain enum — there are no
+// String raw values to parse and an unknown case is unrepresentable. These
+// extensions add only the host-side affordances the bindings don't emit: the
+// modality picker's case list and the human-facing labels. The generated enums
+// are already Equatable/Hashable/Sendable.
 
-    public var id: String { rawValue }
+extension SignalModality: CaseIterable, Identifiable {
+    // Synthesis of `allCases` only fires when the conformance sits beside the
+    // enum's own declaration; this extension lives in a different file from the
+    // generated enum, so the case list is spelled out by hand.
+    public static var allCases: [SignalModality] { [.text, .voiceTranscript, .imageOcrText] }
+
+    public var id: Self { self }
 
     public var label: String {
         switch self {
@@ -16,12 +25,7 @@ public enum SignalModality: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Whether a captured signal has cleared consent for sync. Mirrors the Rust
-/// `ConsentState`; raw values are the wire contract from the core.
-public enum ConsentState: String, Sendable {
-    case pending
-    case consented
-
+extension ConsentState {
     public var label: String {
         switch self {
         case .pending: "Pending"
@@ -30,10 +34,7 @@ public enum ConsentState: String, Sendable {
     }
 }
 
-/// The kind of event emitted when a draft is appended. Mirrors Rust `AppendEventType`.
-public enum AppendEventType: String, Sendable {
-    case signalDraftConsented = "SignalDraftConsented"
-
+extension AppendEventType {
     public var label: String {
         switch self {
         case .signalDraftConsented: "Signal draft consented"
@@ -41,10 +42,7 @@ public enum AppendEventType: String, Sendable {
     }
 }
 
-/// Where an appended event sits in the sync pipeline. Mirrors Rust `SyncState`.
-public enum SyncState: String, Sendable {
-    case queuedForSync = "queued_for_sync"
-
+extension SyncState {
     public var label: String {
         switch self {
         case .queuedForSync: "Queued for sync"

@@ -5,10 +5,10 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import se.reflective.quorum.capture.AppendEventType
-import se.reflective.quorum.capture.ConsentState
-import se.reflective.quorum.capture.SignalModality
-import se.reflective.quorum.capture.SyncState
+import uniffi.quorum_ffi.AppendEventType
+import uniffi.quorum_ffi.ConsentState
+import uniffi.quorum_ffi.SignalModality
+import uniffi.quorum_ffi.SyncState
 
 /**
  * On-device boundary test: the Kotlin adapter + UniFFI bindings + the Rust
@@ -38,5 +38,24 @@ class FfiBridgeInstrumentedTest {
         assertEquals(AppendEventType.SIGNAL_DRAFT_CONSENTED, event.eventType)
         assertEquals(SyncState.QUEUED_FOR_SYNC, event.syncState)
         assertEquals(draft.draftId, event.draftId)
+    }
+
+    /**
+     * Every modality survives the real boundary unchanged. The round-trip above
+     * only exercises one case, so it can't catch a wire mix-up between two
+     * specific cases (a UDL reorder or a bridge-mapping slip) — the failure mode
+     * the enum-on-the-wire refactor could still regress into; this pins each case.
+     */
+    @Test
+    fun everyModalityRoundTripsThroughRealRustCore() = runBlocking {
+        val bridge = QuorumCoreBridgeFFI()
+        for (modality in SignalModality.entries) {
+            val draft = bridge.draftFieldSignal(
+                inquiryThreadId = "inq_modality_roundtrip",
+                modality = modality,
+                rawCapture = "boundary fidelity probe",
+            )
+            assertEquals(modality, draft.modality)
+        }
     }
 }

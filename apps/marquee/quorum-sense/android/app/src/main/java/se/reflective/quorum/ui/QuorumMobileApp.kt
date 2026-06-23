@@ -27,10 +27,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
-import se.reflective.quorum.capture.SignalModality
+import se.reflective.quorum.capture.label
 import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
 import se.reflective.quorum.corebridge.QuorumCoreBridge
 import se.reflective.quorum.ui.theme.QuorumTheme
+import uniffi.quorum_ffi.SignalModality
 
 @Composable
 fun QuorumMobileApp(bridge: QuorumCoreBridge = PreviewQuorumCoreBridge()) {
