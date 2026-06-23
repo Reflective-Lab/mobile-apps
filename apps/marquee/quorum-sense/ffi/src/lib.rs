@@ -218,6 +218,61 @@ pub fn quorum_append_consented_signal(
 }
 
 // ---------------------------------------------------------------------------
+// ADR 0003 snapshot stream (events-out). Until the real linearized core + sync
+// transport exist, `run_mock_collaboration` is a firehose standing in for many
+// remote sessions + on-device AI: it emits a monotonic, coherent snapshot
+// stream so the UI — and load/chaos tests — can be built and measured now.
+// ---------------------------------------------------------------------------
+pub struct Snapshot {
+    pub version: u64,
+    pub inquiry_thread_id: String,
+    pub active_peers: u32,
+    pub pending_signals: u32,
+    pub latest: FfiQuorumSignalDraft,
+}
+
+// The events-out sink. Pure Rust for now (the firehose + load tests run here);
+// it becomes a UniFFI callback interface — Swift `AsyncStream`, Kotlin `Flow` —
+// when the stream is wired to the native UIs.
+pub trait SnapshotSink: Send + Sync {
+    fn on_snapshot(&self, snapshot: Snapshot);
+}
+
+pub fn run_mock_collaboration(
+    sink: Box<dyn SnapshotSink>,
+    peers: u32,
+    snapshots: u32,
+    snapshots_per_sec: u32,
+) {
+    let throttle = (snapshots_per_sec > 0)
+        .then(|| std::time::Duration::from_nanos(1_000_000_000 / snapshots_per_sec as u64));
+    let peers = peers.max(1);
+    let modalities = [
+        SignalModality::Text,
+        SignalModality::VoiceTranscript,
+        SignalModality::ImageOcrText,
+    ];
+    for version in 1..=snapshots as u64 {
+        let peer = version % peers as u64;
+        let inquiry_thread_id = format!("inq_session_{peer}");
+        let modality = modalities[(version % 3) as usize];
+        let capture = format!("collab signal v{version} from peer {peer}");
+        let draft = draft_field_signal(&inquiry_thread_id, modality.into(), &capture);
+        let snapshot = Snapshot {
+            version,
+            inquiry_thread_id,
+            active_peers: peers,
+            pending_signals: (version % 17) as u32,
+            latest: to_ffi_draft(&draft),
+        };
+        sink.on_snapshot(snapshot);
+        if let Some(d) = throttle {
+            std::thread::sleep(d);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Boundary mappings — the single home for String/float <-> domain conversion.
 // ---------------------------------------------------------------------------
 fn to_ffi_draft(draft: &QuorumSignalDraft) -> FfiQuorumSignalDraft {
