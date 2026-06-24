@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".app.QuorumApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -12,15 +13,17 @@
         android:theme="@style/Theme.QuorumMobile">
         <!-- DSN is a public client key (safe to commit). Replace with the value from
              Sentry → Settings → Projects → <android project> → Client Keys (DSN).
-             Its presence makes the SDK auto-initialise; no code needed in MainActivity. -->
+             SentryAndroid.init in QuorumApplication still reads these io.sentry.*
+             values; auto-init is disabled below so the init that registers the
+             beforeSend PII scrub (ADR 0004) is the only one that runs. -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
         <meta-data android:name="io.sentry.dsn" android:value="https://5c45dced4ef26086a101ea0da84a76d1@o4511614588223488.ingest.de.sentry.io/4511614633771088" />
         <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
         <meta-data android:name="io.sentry.environment" android:value="production" />
         <!-- Telemetry-PII boundary (QF-2026-06-24-05, ADR 0004). Field-signal capture
              is sensitive and must not leave the device via the crash pipe. Default PII
-             (IP/user) stays off explicitly. NB: a manifest auto-init cannot register a
-             beforeSend scrub like the iOS/Rust clients do — closing that gap needs a
-             code-based init (custom Application / SentryAndroid.init); tracked in ADR 0004. -->
+             (IP/user) stays off explicitly; the beforeSend scrub in QuorumApplication
+             strips device/user identifiers, matching the iOS/Rust clients. -->
         <meta-data android:name="io.sentry.send-default-pii" android:value="false" />
         <activity
             android:name=".app.MainActivity"

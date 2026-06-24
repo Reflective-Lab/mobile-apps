@@ -45,15 +45,14 @@ Concretely, on every client:
 |---------|--------------------------|---------------------|-----------|
 | Rust    | ✅ | ✅ | `scrub_pii` in `ffi/src/lib.rs` |
 | iOS     | ✅ | ✅ | `options.beforeSend` in `QuorumMobileApp.swift` |
-| Android | ✅ (manifest) | ⚠️ **gap** | manifest meta-data; beforeSend needs code init |
+| Android | ✅ (manifest) | ✅ | `scrubPii` via `SentryAndroid.init` in `QuorumApplication` |
 
-## Residual / follow-up
-
-The Android client auto-initialises from manifest meta-data, which **cannot** register
-a `beforeSend` scrub. Closing this requires a code-based init (a custom `Application`
-or `SentryAndroid.init` with an options callback / `EventProcessor`). Tracked under
-`QF-2026-06-24-05`. Until then Android relies on `send-default-pii=false` plus the
-contract that capture text never enters a logged exception.
+All three clients now strip `server_name`/`user` before send. The Android client
+moved from manifest auto-init to a code-based `SentryAndroid.init` in a custom
+`Application` (auto-init disabled via `io.sentry.auto-init=false`); `init` still reads
+the `io.sentry.*` manifest meta-data so the DSN/environment/`send-default-pii` config
+stays single-sourced, and the lambda only adds the `beforeSend` scrub. Covered by
+`ScrubPiiSpec` (Kotest, `app/src/test`).
 
 ## Consequences
 
