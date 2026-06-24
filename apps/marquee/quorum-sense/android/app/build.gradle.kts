@@ -1,6 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("io.sentry.android.gradle")
 }
@@ -8,6 +9,9 @@ plugins {
 android {
     namespace = "se.reflective.quorum"
     compileSdk = 35
+    // AGP 9.2.1's minimum build-tools is 36.0.0; pin it so CI provisions the exact
+    // package (the CI SDK install lists build-tools;36.0.0 to match).
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "se.reflective.quorum"
@@ -28,12 +32,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
+    }
+}
+
+// Kotlin 2.4 removed the `kotlinOptions { jvmTarget = "17" }` string setter; the
+// JVM target now lives in the typed compilerOptions DSL.
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 
@@ -54,10 +62,10 @@ dependencies {
 
     // --- Local (JVM) unit tests: Kotest runner + assertions + property,
     // MockK, Turbine, coroutines-test. ---
-    testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
-    testImplementation("io.kotest:kotest-assertions-core:5.9.1")
-    testImplementation("io.kotest:kotest-property:5.9.1")
-    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("io.kotest:kotest-runner-junit5:6.2.1")
+    testImplementation("io.kotest:kotest-assertions-core:6.2.1")
+    testImplementation("io.kotest:kotest-property:6.2.1")
+    testImplementation("io.mockk:mockk:1.14.11")
     testImplementation("app.cash.turbine:turbine:1.1.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 
