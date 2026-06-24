@@ -36,7 +36,7 @@ class QuorumApplication : Application() {
         initObservability(
             dsn = "https://096bf7f5a5e69d38023975659d020217@o4511614588223488.ingest.de.sentry.io/4511614643142736",
             environment = if (debuggable) "debug" else "production",
-            release = "quorum@0.1.0",
+            release = "quorum@0.1.1",
             debug = debuggable,
         )
     }
