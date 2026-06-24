@@ -53,31 +53,42 @@ this file concrete, testable, and task-oriented.
 Goal: make the current repo state honest and keep future mobile work inside the
 accepted boundaries.
 
-- [ ] M1.1 Remove stale iOS SwiftPM CI jobs that reference
+Status: **Done — 2026-06-24.** CI is the live ground truth (separate Quorum
+product jobs for iOS/Android plus distinct template smoke-shell jobs), the
+release preflight mirrors it, and three guardrails are now enforced in CI/scripts
+rather than asserted: the dependency boundary (`cargo deny check bans`, EPIC 4),
+the security-advisory gate (`cargo deny check advisories`), and the authority
+leakage scan (M1.6, below). Also folded in `v0.1.0` were the supply-chain and
+PII-boundary hardening tracked as `QF-2026-06-24-01..05`.
+
+- [x] M1.1 Remove stale iOS SwiftPM CI jobs that reference
   `apps/marquee/quorum-sense/ios/QuorumMobileIOS`.
   Acceptance: `rg "QuorumMobileIOS" .github MILESTONES.md` only finds this task
-  until the task is removed or marked done.
-- [ ] M1.2 Add a real Quorum product iOS CI job.
+  until the task is removed or marked done. Verified: only this task matches.
+- [x] M1.2 Add a real Quorum product iOS CI job.
   Acceptance: CI runs `just quorum-ios-gen` and `just quorum-ios-build` on
-  macOS for `apps/marquee/quorum-sense/ios/`.
-- [ ] M1.3 Keep generic template smoke-shell CI separate from Quorum product CI.
+  macOS for `apps/marquee/quorum-sense/ios/`. Done: job "Quorum iOS Product App".
+- [x] M1.3 Keep generic template smoke-shell CI separate from Quorum product CI.
   Acceptance: CI has distinct job names for template smoke shells and the Quorum
-  product app.
-- [ ] M1.4 Update release preflight to match CI.
+  product app. Done: "iOS/Android Smoke Shell" vs "Quorum iOS/Android" jobs.
+- [x] M1.4 Update release preflight to match CI.
   Acceptance: release preflight validates Rust gates, scaffold checks, and the
   current native product path without stale SwiftPM references.
-- [ ] M1.5 Add a forbidden mobile dependency drift check.
+- [x] M1.5 Add a forbidden mobile dependency drift check.
   Acceptance: CI fails if mobile FFI/product crates depend on server-only
   crates such as `converge-kernel`, Manifold adapters, Embassy live ports, or
-  Mosaic credential-bearing crates without an ADR exception.
-- [ ] M1.6 Add a scaffold check for Quorum authority leakage.
+  Mosaic credential-bearing crates without an ADR exception. Done: `deny.toml`
+  `[bans]` + CI "Dependency boundary" step.
+- [x] M1.6 Add a scaffold check for Quorum authority leakage.
   Acceptance: mobile Quorum source cannot introduce round-close, rulebook,
   Lamport, Merkle, Stripe, or entitlement-authority code without updating the
-  boundary docs and an ADR.
-- [ ] M1.7 Document generated artifact expectations.
+  boundary docs and an ADR. Done: `scripts/check-mobile-scaffold.sh` scans
+  mobile source for those tokens and fails CI; relaxing it requires an ADR.
+- [x] M1.7 Document generated artifact expectations.
   Acceptance: iOS XCFramework/Swift bindings and Android JNI/Kotlin bindings
-  are clearly documented as generated and gitignored.
-- [ ] M1.8 Re-run local gates after CI changes.
+  are clearly documented as generated and gitignored. Done: nested `.gitignore`
+  in `ios/` and `android/`; `apps/marquee/quorum-sense/README.md` documents them.
+- [x] M1.8 Re-run local gates after CI changes.
   Acceptance: `cargo test --workspace --locked` and
   `bash scripts/check-mobile-scaffold.sh` pass.
 

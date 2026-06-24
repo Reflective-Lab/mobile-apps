@@ -40,5 +40,31 @@ grep -q "@main" \
 grep -q "SignalCaptureScreen" \
   apps/marquee/quorum-sense/android/app/src/main/java/se/reflective/quorum/ui/QuorumMobileApp.kt
 
+# M1.6 — authority-leakage guard (MILESTONES.md). The marquee mobile client
+# captures, drafts, asks consent, queues, and renders receipts; it must never
+# carry server *authority*: round-close, rulebook evaluation, Lamport/Merkle
+# chain mutation, Stripe billing, or entitlement decisions (ADR 0002, EPIC 4).
+# Introducing any of those into mobile source requires updating the boundary
+# docs + an ADR — and relaxing this guard in the same change, not silently.
+authority_dirs=(
+  crates/mobile-core/src
+  crates/mobile-ai/src
+  apps/marquee/quorum-sense/ffi/src
+  apps/marquee/quorum-sense/ios/App
+  apps/marquee/quorum-sense/ios/Views
+  apps/marquee/quorum-sense/ios/CoreBridge
+  apps/marquee/quorum-sense/android/app/src/main
+)
+authority_pattern='round[-_ ]?close|rulebook|lamport|merkle|stripe|entitlement'
+# QuorumFFI.swift is generated; never hand-edited, so it is not a leak surface.
+if leak=$(grep -rinE "$authority_pattern" "${authority_dirs[@]}" \
+      --include='*.rs' --include='*.swift' --include='*.kt' 2>/dev/null \
+      | grep -v 'CoreBridge/QuorumFFI.swift'); then
+  echo "forbidden server-authority code in mobile source (ADR 0002 / EPIC 4):" >&2
+  echo "$leak" >&2
+  echo "If intentional, update the boundary docs + an ADR, then relax this guard." >&2
+  exit 1
+fi
+
 echo "mobile scaffold check passed"
 
