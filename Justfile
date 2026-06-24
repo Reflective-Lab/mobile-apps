@@ -32,9 +32,11 @@ scaffold-check:
 # Fuzz the untrusted-input seam (QF-2026-06-24-06). Needs nightly + cargo-fuzz:
 #   rustup toolchain install nightly && cargo install cargo-fuzz
 # Targets: draft_field_signal | parse_enums | confidence_roundtrip.
-# Bounded by default so it doubles as a quick smoke; drop `secs=` to fuzz longer.
+# Reads the committed seed corpus (seeds/<target>) and writes discoveries to the
+# scratch corpus/<target> (gitignored). Bounded by default so it doubles as a
+# quick smoke; raise `secs=` to fuzz longer.
 fuzz-core target="draft_field_signal" secs="60":
-    cd crates/mobile-core/fuzz && cargo +nightly fuzz run {{target}} -- -max_total_time={{secs}}
+    cd crates/mobile-core/fuzz && mkdir -p corpus/{{target}} && cargo +nightly fuzz run {{target}} corpus/{{target}} seeds/{{target}} -- -max_total_time={{secs}}
 
 check: fmt test scaffold-check
 
