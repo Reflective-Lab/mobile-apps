@@ -1,8 +1,12 @@
 name: Fuzz
 
-# Fuzzing the untrusted-input seam (QF-2026-06-24-06). Time-bounded, so it runs on
-# a nightly schedule + manual dispatch rather than on every PR. A discovered crash
-# fails the job and the reproducer is uploaded as an artifact.
+# Fuzzing the untrusted-input seam (QF-2026-06-24-06). Three modes:
+#   - pull_request (paths-scoped): a short, time-boxed smoke of the hottest target
+#     so a regression that crashes a known input surfaces on the PR, not overnight.
+#   - schedule (nightly) + workflow_dispatch: the full matrix, longer runs.
+# Every run reads the committed seed corpus (seeds/<target>) and writes any new
+# units to the scratch corpus/<target> (gitignored). A discovered crash fails the
+# job and uploads the reproducer as an artifact.
 on:
   schedule:
     - cron: "0 4 * * *" # 04:00 UTC nightly
@@ -11,6 +15,13 @@ on:
       max_total_time:
         description: Seconds to fuzz each target
         default: "120"
+  pull_request:
+    # Only when the fuzzed code (or the harness itself) changes — keeps the
+    # nightly-toolchain + cargo-fuzz build off unrelated PRs.
+    paths:
+      - "crates/mobile-core/**"
+      - "apps/marquee/quorum-sense/ffi/**"
+      - ".github/workflows/fuzz.yml"
 
 permissions:
   contents: read
@@ -19,8 +30,41 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  smoke:
+    # PR-time guard: the hottest target only, time-boxed, replaying the seed
+    # corpus so a known-good input that now panics fails the PR immediately.
+    name: cargo-fuzz smoke (draft_field_signal)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install nightly toolchain
+        run: rustup toolchain install nightly --profile minimal
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Smoke draft_field_signal (bounded, seed corpus)
+        working-directory: crates/mobile-core/fuzz
+        run: |
+          mkdir -p corpus/draft_field_signal
+          cargo +nightly fuzz run draft_field_signal \
+            corpus/draft_field_signal seeds/draft_field_signal \
+            -- -max_total_time=30
+
+      - name: Upload crash reproducer
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-smoke-artifacts
+          path: crates/mobile-core/fuzz/artifacts/
+          if-no-files-found: ignore
+
   fuzz:
     name: cargo-fuzz (mobile-core)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -39,7 +83,9 @@ jobs:
       - name: Fuzz ${{ matrix.target }}
         working-directory: crates/mobile-core/fuzz
         run: |
+          mkdir -p corpus/${{ matrix.target }}
           cargo +nightly fuzz run ${{ matrix.target }} \
+            corpus/${{ matrix.target }} seeds/${{ matrix.target }} \
             -- -max_total_time=${{ github.event.inputs.max_total_time || '120' }}
 
       - name: Upload crash reproducer
