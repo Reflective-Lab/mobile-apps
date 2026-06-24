@@ -17,6 +17,12 @@ LIB_FILE="lib${LIB_BASENAME}.a"
 FRAMEWORK=QuorumFFI
 UDL=apps/marquee/quorum-sense/ffi/src/quorum_mobile.udl
 
+# Match the app's iOS deployment target (project.yml: iOS 18.0). Rust defaults the
+# aarch64-apple-ios target to iOS 10.0, which mismatches C deps compiled against
+# the current SDK (e.g. aws-lc-sys via reqwest/rustls) and fails to link. Pinning
+# it keeps every slice consistent with the app it links into.
+export IPHONEOS_DEPLOYMENT_TARGET=18.0
+
 DEVICE=aarch64-apple-ios
 SIM_ARM=aarch64-apple-ios-sim
 SIM_X86=x86_64-apple-ios
