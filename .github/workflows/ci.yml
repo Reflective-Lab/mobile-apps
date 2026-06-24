@@ -504,3 +504,17 @@ jobs:
 
       - name: Check scaffold contract
         run: bash scripts/check-mobile-scaffold.sh
+
+  gradle-wrapper:
+    name: Gradle Wrapper Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # Validates every gradle-wrapper.jar in the repo against Gradle's published
+      # known-good checksums — a tampered wrapper jar (a known supply-chain vector)
+      # fails the build. Complements the distributionSha256Sum pin in
+      # gradle-wrapper.properties, which pins the Gradle distribution itself.
+      - name: Validate Gradle wrapper jars
+        uses: gradle/actions/wrapper-validation@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
