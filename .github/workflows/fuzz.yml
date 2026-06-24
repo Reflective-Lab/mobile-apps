@@ -1,0 +1,51 @@
+name: Fuzz
+
+# Fuzzing the untrusted-input seam (QF-2026-06-24-06). Time-bounded, so it runs on
+# a nightly schedule + manual dispatch rather than on every PR. A discovered crash
+# fails the job and the reproducer is uploaded as an artifact.
+on:
+  schedule:
+    - cron: "0 4 * * *" # 04:00 UTC nightly
+  workflow_dispatch:
+    inputs:
+      max_total_time:
+        description: Seconds to fuzz each target
+        default: "120"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fuzz:
+    name: cargo-fuzz (mobile-core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [draft_field_signal, parse_enums, confidence_roundtrip]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install nightly toolchain
+        run: rustup toolchain install nightly --profile minimal
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Fuzz ${{ matrix.target }}
+        working-directory: crates/mobile-core/fuzz
+        run: |
+          cargo +nightly fuzz run ${{ matrix.target }} \
+            -- -max_total_time=${{ github.event.inputs.max_total_time || '120' }}
+
+      - name: Upload crash reproducer
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: crates/mobile-core/fuzz/artifacts/
+          if-no-files-found: ignore

@@ -44,10 +44,24 @@ deny = [
 ]
 
 [advisories]
-# Vulnerabilities are fixed by upgrading, not ignored. No active ignores.
+# Security-advisory gate (RUSTSEC). Run: `cargo deny check advisories`.
+# Vulnerabilities are fixed by upgrading, not ignored — no active ignores. A real
+# unfixable transitive advisory is recorded as an Accepted Risk in the quality
+# ledger + risk register and ignored here by RUSTSEC id with a dated rationale,
+# never blanket-silenced. `yanked = "deny"` keeps a yanked crate (a common
+# supply-chain / withdrawn-release signal) out of a shipped mobile lockfile;
+# `unmaintained = "workspace"` flags abandoned first-party deps without drowning
+# in transitive noise we cannot act on.
 version = 2
+yanked = "deny"
+unmaintained = "workspace"
+ignore = []
 
 [licenses]
 version = 2
 # Permissive default so `cargo deny check bans` isn't blocked by license noise.
-allow = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.0", "Zlib", "MPL-2.0", "CC0-1.0"]
+# CDLA-Permissive-2.0 is the license on the Mozilla CA root-certificate bundle
+# (webpki-roots), pulled in transitively by the rustls/reqwest TLS stack the
+# Sentry transport uses. It is an OSI-style permissive "share the data freely"
+# license covering the trust store, not code we author — safe to allow.
+allow = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.0", "Zlib", "MPL-2.0", "CC0-1.0", "CDLA-Permissive-2.0"]

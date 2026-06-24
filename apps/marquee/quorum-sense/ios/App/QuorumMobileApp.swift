@@ -20,6 +20,17 @@ struct QuorumMobileApp: App {
             options.environment = "production"
             #endif
 
+            // Telemetry-PII boundary (QF-2026-06-24-05, ADR 0004). Field-signal
+            // capture (transcript / OCR / free text) is sensitive and must not leave
+            // the device via the crash pipe. Keep default PII off and strip device/
+            // user identifiers before any event ships.
+            options.sendDefaultPii = false
+            options.beforeSend = { event in
+                event.serverName = nil // device hostname
+                event.user = nil // id / username / ip / geo
+                return event
+            }
+
             // Performance + profiling. Dial these down for production volume.
             options.tracesSampleRate = 1.0
             options.configureProfiling = {

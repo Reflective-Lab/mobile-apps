@@ -29,6 +29,13 @@ doc:
 scaffold-check:
     bash scripts/check-mobile-scaffold.sh
 
+# Fuzz the untrusted-input seam (QF-2026-06-24-06). Needs nightly + cargo-fuzz:
+#   rustup toolchain install nightly && cargo install cargo-fuzz
+# Targets: draft_field_signal | parse_enums | confidence_roundtrip.
+# Bounded by default so it doubles as a quick smoke; drop `secs=` to fuzz longer.
+fuzz-core target="draft_field_signal" secs="60":
+    cd crates/mobile-core/fuzz && cargo +nightly fuzz run {{target}} -- -max_total_time={{secs}}
+
 check: fmt test scaffold-check
 
 # Rust + iOS smoke shell + Android smoke shell. Slow. Requires Xcode, Android SDK+NDK, cargo-ndk.
@@ -109,6 +116,14 @@ quorum-android-uniffi:
 # Build the product app (runs against the real Rust core via QuorumCoreBridgeFFI).
 quorum-android-build: quorum-android-uniffi
     cd apps/marquee/quorum-sense/android && ./gradlew :app:assembleDebug
+
+# Regenerate the sha256 dependency-verification metadata (QF-2026-06-24-04).
+# Resolves every classpath CI touches so the committed file stays complete; needs
+# the UniFFI jniLibs present first (Gradle configures the FFI task). Re-run after any
+# Gradle dependency or plugin bump, then review the diff before committing.
+quorum-android-verify-metadata: quorum-android-uniffi
+    cd apps/marquee/quorum-sense/android && ./gradlew --write-verification-metadata sha256 \
+        assembleDebug assembleRelease assembleDebugAndroidTest testDebugUnitTest
 
 # --- Android native shell template ---
 

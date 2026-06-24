@@ -6,6 +6,12 @@ DerivedData/
 *.xcresult
 **/.gradle/
 **/build/
+**/.kotlin/
+# cargo-fuzz local state (QF-2026-06-24-06); the targets + Cargo.toml are tracked.
+crates/mobile-core/fuzz/target/
+crates/mobile-core/fuzz/corpus/
+crates/mobile-core/fuzz/artifacts/
+crates/mobile-core/fuzz/Cargo.lock
 archive/legacy-placeholders/converge-android/
 archive/legacy-placeholders/converge-ios/
 archive/legacy-placeholders/wolfgang-android/

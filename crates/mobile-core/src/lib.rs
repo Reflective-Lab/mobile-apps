@@ -1,3 +1,11 @@
+// Boundary hardening (QF-2026-06-24-02). This crate runs *underneath* the UniFFI
+// seam: a panic here unwinds into Swift/Kotlin, which is undefined behaviour, not
+// a catchable error. Forbid hand-written `unsafe` and deny implicit-abort paths in
+// the shipped library. Scoped to the library (inner attributes), so integration
+// tests in `tests/` and `#[cfg(test)]` units stay ergonomic (see clippy.toml).
+#![forbid(unsafe_code)]
+#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 pub mod quorum;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

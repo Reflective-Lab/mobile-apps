@@ -1,0 +1,46 @@
+# cargo-fuzz harness for the untrusted-input seam (QF-2026-06-24-06).
+#
+# Detached from the parent workspace via the empty `[workspace]` table below: the
+# libfuzzer-sys dep needs a nightly sanitizer runtime and must never enter the
+# stable `cargo build --workspace` that CI runs. Drive it with cargo-fuzz instead:
+#   rustup toolchain install nightly
+#   cargo install cargo-fuzz
+#   just fuzz-core               # or: cargo +nightly fuzz run draft_field_signal
+[workspace]
+
+[package]
+name = "reflective-mobile-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.reflective-mobile-core]
+path = ".."
+
+[[bin]]
+name = "draft_field_signal"
+path = "fuzz_targets/draft_field_signal.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parse_enums"
+path = "fuzz_targets/parse_enums.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "confidence_roundtrip"
+path = "fuzz_targets/confidence_roundtrip.rs"
+test = false
+doc = false
+bench = false

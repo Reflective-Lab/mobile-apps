@@ -1,3 +1,9 @@
+// Boundary hardening (QF-2026-06-24-02) — see reflective-mobile-core. AI-routing
+// logic runs under the UniFFI seam; forbid hand-written `unsafe` and deny
+// implicit-abort paths so a routing decision can never panic into the native shell.
+#![forbid(unsafe_code)]
+#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 use reflective_mobile_core::{MobilePlatform, PlatformRuntime};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

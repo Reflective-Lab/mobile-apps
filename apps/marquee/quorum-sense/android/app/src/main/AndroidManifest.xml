@@ -16,6 +16,12 @@
         <meta-data android:name="io.sentry.dsn" android:value="https://5c45dced4ef26086a101ea0da84a76d1@o4511614588223488.ingest.de.sentry.io/4511614633771088" />
         <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
         <meta-data android:name="io.sentry.environment" android:value="production" />
+        <!-- Telemetry-PII boundary (QF-2026-06-24-05, ADR 0004). Field-signal capture
+             is sensitive and must not leave the device via the crash pipe. Default PII
+             (IP/user) stays off explicitly. NB: a manifest auto-init cannot register a
+             beforeSend scrub like the iOS/Rust clients do — closing that gap needs a
+             code-based init (custom Application / SentryAndroid.init); tracked in ADR 0004. -->
+        <meta-data android:name="io.sentry.send-default-pii" android:value="false" />
         <activity
             android:name=".app.MainActivity"
             android:exported="true">

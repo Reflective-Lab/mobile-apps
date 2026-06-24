@@ -1,0 +1,9 @@
+# Workspace clippy config. The pure domain crates (reflective-mobile-core,
+# reflective-mobile-ai) deny unwrap/expect/panic so a fallible path can never
+# abort the process *across the UniFFI boundary* — a Rust panic unwinding into
+# Swift/Kotlin is undefined behaviour, not a catchable error. See QF-2026-06-24-02.
+#
+# Tests are exempt: an unwrap in a #[cfg(test)] block is an assertion, not a
+# shipped abort path.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

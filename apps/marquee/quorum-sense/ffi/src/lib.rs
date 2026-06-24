@@ -40,6 +40,15 @@ pub fn init_observability(dsn: String, environment: String, release: String, deb
                 debug,
                 // The panic integration (default with the `panic` feature) reports
                 // Rust panics — with backtraces — that UniFFI would otherwise hide.
+                //
+                // Telemetry-PII boundary (QF-2026-06-24-05, ADR 0004). Field-signal
+                // capture (raw_capture: voice transcript / OCR / free text) is
+                // sensitive and must not leave the device through the crash pipe.
+                // `send_default_pii = false` keeps the SDK from attaching IP/user
+                // context; `before_send` strips the device hostname and any user
+                // identity the runtime may have populated before the event ships.
+                send_default_pii: false,
+                before_send: Some(std::sync::Arc::new(scrub_pii)),
                 ..Default::default()
             },
         ));
@@ -47,6 +56,19 @@ pub fn init_observability(dsn: String, environment: String, release: String, deb
     }
     #[cfg(not(feature = "observability"))]
     let _ = (dsn, environment, release, debug);
+}
+
+/// `before_send` hook: drop device/user identifiers before a crash event leaves
+/// the device (QF-2026-06-24-05, ADR 0004). We keep the panic message + backtrace
+/// — they are needed to debug a crash and should not embed user capture — but
+/// remove the ambient identity Sentry can otherwise attach.
+#[cfg(feature = "observability")]
+fn scrub_pii(
+    mut event: sentry::protocol::Event<'static>,
+) -> Option<sentry::protocol::Event<'static>> {
+    event.server_name = None; // device hostname
+    event.user = None; // id / username / ip / geo
+    Some(event)
 }
 
 /// Report an error only when it is an unexpected/internal failure; routine

@@ -1,0 +1,30 @@
+# Dependabot keeps the three supply-chain surfaces this repo actually pulls from
+# current: GitHub Actions (now SHA-pinned — Dependabot reads the `# v4` comment and
+# proposes SHA bumps with a changelog), the Cargo workspace, and the Android Gradle
+# build. See QF-2026-06-24-03.
+#
+# Not covered here: the iOS Swift Package graph is pinned via the committed
+# `Package.resolved` (xcodeproj SPM, no root Package.swift for Dependabot to read);
+# bumps there are reviewed manually until a Package.swift exists at a scanned path.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    # Security updates land regardless; this caps routine version-bump noise.
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: gradle
+    directory: /apps/marquee/quorum-sense/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
