@@ -40,7 +40,7 @@ uniffi = { version = "0.31.1", features = ["cli"] }
 #   - use `ureq`+`native-tls` (lighter, but Android then needs vendored OpenSSL).
 # Verified delivering events (Sentry event abc1cd08…) and cross-compiling to
 # both iOS and Android.
-sentry = { version = "0.34", default-features = false, features = [
+sentry = { version = "0.48", default-features = false, features = [
     "backtrace",
     "contexts",
     "panic",

@@ -44,7 +44,7 @@ deny = [
 ]
 
 [advisories]
-# This file scopes the bans gate; security advisories are handled separately.
+# Vulnerabilities are fixed by upgrading, not ignored. No active ignores.
 version = 2
 
 [licenses]
