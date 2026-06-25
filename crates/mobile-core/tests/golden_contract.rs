@@ -7,8 +7,12 @@
 //!   tests. Here we assert the Rust core honours the fields that fixture
 //!   declares for the `rust_core.draft` / `append_event`.
 //!
-//! Note: the fixture's `summary` is a *curated ideal* summary, not what the
-//! current deterministic stub emits, so it is intentionally not asserted here.
+//! Note: the fixture's `summary`, `latent_need`, and `contradiction` are
+//! *curated ideal* values. The core now derives these on-device via the
+//! Converge refinement loop (`refine`), so they are intentionally not asserted
+//! byte-for-byte here — only their presence/validity is. The fixture remains
+//! the contract for the structural fields (workflow id, draft id, consent +
+//! sync state) that the cross-language boundary depends on.
 
 use reflective_mobile_core::quorum::{
     FIELD_SIGNAL_CAPTURE_FIXTURE_JSON, SignalModality, append_consented_signal, draft_field_signal,
@@ -50,18 +54,19 @@ fn core_draft_honours_the_fixture_contract() {
         draft.draft_id.as_str(),
         expected["draft_id"].as_str().unwrap()
     );
-    assert_eq!(draft.latent_need, expected["latent_need"].as_str().unwrap());
-    assert_eq!(
-        draft.contradiction,
-        expected["contradiction"].as_str().unwrap()
-    );
     assert_eq!(
         draft.consent_state.as_str(),
         expected["consent_state"].as_str().unwrap()
     );
 
-    let expected_confidence = expected["confidence"].as_f64().unwrap() as f32;
-    assert_eq!(draft.confidence.value(), expected_confidence);
+    // Contract update (M2.1): summary/latent_need/contradiction/confidence are
+    // now produced by the on-device Converge refinement loop, not pinned to the
+    // fixture's curated-ideal values. Assert they are present and valid, not
+    // byte-equal — the fixture still declares the structural contract above.
+    assert!(!draft.summary.is_empty());
+    assert!(!draft.latent_need.is_empty());
+    assert!(!draft.contradiction.is_empty());
+    assert!((0.0..=1.0).contains(&draft.confidence.value()));
 }
 
 #[test]

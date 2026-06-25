@@ -14,11 +14,11 @@ QuorumSignalDraft {
     ),
     modality: VoiceTranscript,
     raw_capture: "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
-    summary: "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
-    latent_need: "needs earlier visibility into organizational ambiguity",
-    contradiction: "participants report alignment while surfacing unresolved tension",
+    summary: "The sales team says rollout is fine, but support is seeing confusion in every pilot",
+    latent_need: "surface the unspoken need behind: \"The sales team says rollout is fine, but\"",
+    contradiction: "tension marked by \"but\": The sales team says rollout is fine, but support is seeing confusion in every pilot.",
     confidence: Confidence(
-        0.67,
+        0.96250004,
     ),
     consent_state: Pending,
 }

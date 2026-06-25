@@ -183,7 +183,10 @@ pub fn draft_field_signal(
     modality: SignalModality,
     raw_capture: &str,
 ) -> QuorumSignalDraft {
-    let summary = summarize_for_fixture(raw_capture);
+    // Run the on-device Converge fixed-point formation over the raw capture.
+    // This sharpens the participant's own signal locally; it never promotes
+    // facts or computes collective state (ADR 0002). Infallible by design.
+    let refined = crate::refine::refine_capture(raw_capture);
 
     QuorumSignalDraft {
         workflow_id: WorkflowId::field_signal_capture(),
@@ -191,13 +194,13 @@ pub fn draft_field_signal(
         inquiry_thread_id: InquiryThreadId::new(inquiry_thread_id),
         modality,
         raw_capture: raw_capture.to_owned(),
-        summary,
-        latent_need: "needs earlier visibility into organizational ambiguity".to_owned(),
-        contradiction: "participants report alignment while surfacing unresolved tension"
-            .to_owned(),
-        // Known-valid literal: constructed directly because the private field is
-        // in scope here; external callers must go through `Confidence::new`.
-        confidence: Confidence(0.67),
+        summary: refined.summary,
+        latent_need: refined.latent_need,
+        contradiction: refined.contradiction,
+        // `refine` already clamps to 0.0..=1.0; `unwrap_or` is a typed-boundary
+        // belt-and-suspenders so a future out-of-range value can never panic
+        // here (Confidence's field is private to this module).
+        confidence: Confidence::new(refined.confidence).unwrap_or(Confidence(0.2)),
         consent_state: ConsentState::Pending,
     }
 }
@@ -300,15 +303,6 @@ fn capture_modality_from_signal(modality: SignalModality) -> CaptureModality {
     }
 }
 
-fn summarize_for_fixture(raw_capture: &str) -> String {
-    let trimmed = raw_capture.trim();
-    if trimmed.is_empty() {
-        return "Empty capture needs participant clarification".to_owned();
-    }
-
-    trimmed.chars().take(96).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -331,7 +325,18 @@ mod tests {
 
         assert_eq!(draft.workflow_id.as_str(), FIELD_SIGNAL_CAPTURE_WORKFLOW_ID);
         assert_eq!(draft.modality, SignalModality::VoiceTranscript);
-        assert_eq!(draft.confidence.value(), 0.67);
+        // Contract update: confidence is now computed by the on-device Converge
+        // refinement loop, not the old hardcoded 0.67 fixture literal. The
+        // contract is "a valid score in range", not a fixed magic number.
+        assert!((0.0..=1.0).contains(&draft.confidence.value()));
+        assert!(draft.confidence.value() > 0.0);
+        // The capture carries a "but" tension, so the refiner must surface it.
+        assert!(
+            draft.contradiction.contains("tension") || draft.contradiction.contains("but"),
+            "expected surfaced tension, got: {}",
+            draft.contradiction
+        );
+        assert!(!draft.summary.is_empty());
         assert_eq!(draft.consent_state, ConsentState::Pending);
 
         let event = append_consented_signal(&draft);
@@ -406,7 +411,7 @@ mod tests {
             packet.source.inquiry_thread_id.as_deref(),
             Some("inq_mobile_launch_risks")
         );
-        assert_eq!(packet.payload.confidence, 0.67);
+        assert!((0.0..=1.0).contains(&packet.payload.confidence));
 
         let event = append_from_capture_packet(&packet).expect("packet queues");
         assert_eq!(event.draft_id.as_str(), draft.draft_id.as_str());

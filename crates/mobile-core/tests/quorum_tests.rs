@@ -41,7 +41,9 @@ fn draft_then_append_carries_ids_through() {
     assert_eq!(draft.inquiry_thread_id.as_str(), "inq_mobile_launch_risks");
     assert_eq!(draft.modality, SignalModality::VoiceTranscript);
     assert_eq!(draft.consent_state, ConsentState::Pending);
-    assert_eq!(draft.confidence.value(), 0.67);
+    // Contract update (M2.1): confidence is computed by the on-device Converge
+    // refinement loop now, not the old hardcoded 0.67 fixture literal.
+    assert!((0.0..=1.0).contains(&draft.confidence.value()));
 
     let event = append_consented_signal(&draft);
     assert_eq!(event.workflow_id, draft.workflow_id);

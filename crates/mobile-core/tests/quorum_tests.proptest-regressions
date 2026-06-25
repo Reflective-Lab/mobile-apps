@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc dd899a7cea81a1060fa8ca0a3c8e640259b086872837869e5024d58a961554f8 # shrinks to thread = "", raw = "?¡¡\00\u{b}¡0¡\u{e000}\0¡\u{e000} a¡0A aA¡a ¡a00¡AA  ¡A¡A¡a0\u{b}  ¡¡\0¡  \u{b}0㦌¥:ѨѨ\u{2}\u{7f}u𣮏\u{7f}b\u{89491}.\u{7f}\u{15b37}/\u{b}\u{d8973}\0\u{202e}\0T*@\t\u{cea42}\u{5541e}𭙳}\u{7f}¥\u{a0}`$\u{956b7}\u{b}\u{feff}\r.%\u{7be45}%\u{b}/6\u{1b}", modality = Text

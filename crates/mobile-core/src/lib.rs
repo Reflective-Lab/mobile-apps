@@ -12,6 +12,7 @@ pub mod director;
 pub mod persistence;
 pub mod queue;
 pub mod quorum;
+pub mod refine;
 pub mod sync;
 
 /// Proves the on-device Converge fixed-point engine is linked and constructable

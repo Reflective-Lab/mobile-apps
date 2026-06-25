@@ -22,6 +22,10 @@ ureq = { version = "2", default-features = false, features = ["json", "tls"] }
 # the deny.toml client boundary. NEVER use converge_core::integrity here
 # (LamportClock/MerkleRoot are the collective/server chain concern — ADR 0002).
 converge-core = { path = "../../../bedrock-platform/converge/crates/core" }
+# Implement converge-core's async `Suggestor` trait for the local formation.
+async-trait = "0.1"
+# Minimal block_on to drive the async fixed-point engine in-process (no tokio).
+pollster = "0.4"
 
 [dev-dependencies]
 proptest = "1"
