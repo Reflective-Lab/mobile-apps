@@ -9,13 +9,15 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-25
+
 ### Security
 - Gradle dependency verification is now **strict**: a tampered, swapped, or unlisted
   dependency **fails** the build (previously lenient — warn-only). The
   `verification-metadata.xml` is a macOS+Linux superset (581 components), regenerated
   via a new `workflow_dispatch` job (`android-verify-metadata.yml`) that runs on a
   Linux CI runner so the build-tooling artifacts the runner resolves are included.
-  (`QF-2026-06-24-04`)
+  (`QF-2026-06-24-04`) — closes the 2026-06-24 mobile boundary audit (6 of 6).
 
 ## [0.1.1] - 2026-06-24
 
@@ -62,6 +64,7 @@ Initial release — security-hardening foundation from the 2026-06-24 boundary a
   crash clients. (`QF-2026-06-24-05`, ADR 0004)
 - `sentry` (Rust) 0.34 → 0.48 — drops the vulnerable `rustls-webpki`.
 
-[Unreleased]: https://github.com/Reflective-Lab/mobile-apps/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Reflective-Lab/mobile-apps/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Reflective-Lab/mobile-apps/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Reflective-Lab/mobile-apps/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Reflective-Lab/mobile-apps/releases/tag/v0.1.0
