@@ -514,15 +514,18 @@ mod tests {
         assert_eq!(draft.inquiry_thread_id, FIXTURE_INQUIRY_THREAD_ID);
         assert_eq!(draft.modality, SignalModality::VoiceTranscript);
         assert_eq!(draft.raw_capture, FIXTURE_RAW_CAPTURE);
-        assert_eq!(
-            draft.latent_need,
-            "needs earlier visibility into organizational ambiguity"
+        // Contract update (M2.1): summary/latent_need/contradiction/confidence
+        // now come from the on-device Converge refinement loop, not the stub's
+        // curated-ideal literals. Assert validity + that the surfaced "but"
+        // tension crosses the FFI intact, not byte-equality.
+        assert!(!draft.summary.is_empty());
+        assert!(!draft.latent_need.is_empty());
+        assert!(
+            draft.contradiction.contains("tension") || draft.contradiction.contains("but"),
+            "expected surfaced tension across the FFI, got: {}",
+            draft.contradiction
         );
-        assert_eq!(
-            draft.contradiction,
-            "participants report alignment while surfacing unresolved tension"
-        );
-        assert_eq!(draft.confidence, 0.67);
+        assert!(draft.confidence >= 0.0 && draft.confidence <= 1.0);
         assert_eq!(draft.consent_state, ConsentState::Pending);
     }
 
