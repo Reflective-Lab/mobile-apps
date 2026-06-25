@@ -8,10 +8,6 @@ name: Android Verification Metadata (Linux)
 # `--write-verification-metadata` MERGES, so the result is a macOS+Linux superset.
 on:
   workflow_dispatch:
-  # TEMP: branch-scoped push trigger so this can run before it's on the default
-  # branch (workflow_dispatch isn't dispatchable until then). Removed before merge.
-  push:
-    branches: [quality/qf04-linux-metadata-strict]
 
 permissions:
   contents: read
