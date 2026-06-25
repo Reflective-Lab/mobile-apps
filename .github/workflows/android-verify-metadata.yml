@@ -1,0 +1,73 @@
+name: Android Verification Metadata (Linux)
+
+# Regenerates gradle/verification-metadata.xml on a Linux runner (QF-2026-06-24-04).
+# Strict dependency verification needs the metadata to include the build-tooling
+# artifacts the Linux CI runner resolves — a macOS dev box can't produce those, which
+# is why strict couldn't be enabled from a locally-generated file. Run this
+# (workflow_dispatch), download the `verification-metadata` artifact, and commit it.
+# `--write-verification-metadata` MERGES, so the result is a macOS+Linux superset.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  regen:
+    name: Regenerate verification-metadata.xml (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: "platforms;android-35 build-tools;36.0.0 ndk;27.1.12297006"
+
+      - name: Export ANDROID_NDK_HOME
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install Android rustup targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      # Gradle configures the FFI task, so the jniLibs must exist before resolving.
+      - name: Generate Quorum FFI bindings + jniLibs
+        run: just quorum-android-uniffi
+
+      # Merges the Linux-resolved artifacts into the committed (macOS-generated) file.
+      # Write mode ignores the lenient/strict setting, so it runs regardless.
+      - name: Write verification metadata (Linux artifacts merged in)
+        working-directory: apps/marquee/quorum-sense/android
+        run: |
+          ./gradlew --write-verification-metadata sha256 \
+            assembleDebug assembleRelease assembleDebugAndroidTest testDebugUnitTest \
+            --no-daemon
+
+      - name: Upload merged metadata
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verification-metadata
+          path: apps/marquee/quorum-sense/android/gradle/verification-metadata.xml
+          if-no-files-found: error
