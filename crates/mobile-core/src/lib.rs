@@ -14,6 +14,17 @@ pub mod queue;
 pub mod quorum;
 pub mod sync;
 
+/// Proves the on-device Converge fixed-point engine is linked and constructable
+/// inside the mobile core. This is the integration smoke for the local
+/// signal-refinement loop (the `LocalRefiner` is built on top of this engine).
+/// Kept deliberately minimal — it constructs an empty [`converge_core::Engine`]
+/// without driving it, so it stays panic-free under the crate's deny lints.
+#[must_use]
+pub fn converge_engine_linked() -> bool {
+    let _engine = converge_core::Engine::new();
+    true
+}
+
 pub use capture::{CapturePacket, CapturePacketError, ConsentRecord as CaptureConsentRecord};
 pub use consent::ConsentDecision;
 pub use persistence::{

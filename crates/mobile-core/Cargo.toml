@@ -16,9 +16,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 ureq = { version = "2", default-features = false, features = ["json", "tls"] }
+# On-device fixed-point engine for the local signal-refinement loop. Workspace
+# path dep into the bedrock-platform/converge tree (M2.5: workspace path
+# distribution). converge-core is pure (no tokio/network/server deps) and clears
+# the deny.toml client boundary. NEVER use converge_core::integrity here
+# (LamportClock/MerkleRoot are the collective/server chain concern — ADR 0002).
+converge-core = { path = "../../../bedrock-platform/converge/crates/core" }
 
 [dev-dependencies]
 proptest = "1"
 insta = "1"
 serde_json = "1"
-
