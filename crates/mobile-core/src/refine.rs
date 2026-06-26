@@ -308,9 +308,127 @@ impl Suggestor for ContradictionSuggestor {
     }
 }
 
+/// A synchronous text-generation primitive — an LLM. Returns `None` when the
+/// model is unavailable or declines, so callers fall back. Sync by design: it
+/// is called from inside the Converge fixed-point loop (`block_on`); the native
+/// implementation blocks on its async model off the main thread (ADR 0003), so
+/// the UI is never coupled to inference latency.
+pub trait LlmTextGenerator: Send + Sync {
+    /// Complete `prompt`, or `None` if the model is unavailable / declines.
+    fn complete(&self, prompt: &str) -> Option<String>;
+}
+
+/// A [`RefineBackend`] that does the language work with an [`LlmTextGenerator`],
+/// falling back to [`HeuristicBackend`] per field when the model is unavailable.
+/// This is the device → … → heuristic placement at the field level: the native
+/// side decides device-LLM vs cloud behind the generator, and this layer still
+/// guarantees a valid draft when every model is gone.
+pub struct LlmRefineBackend<G: LlmTextGenerator> {
+    llm: G,
+    fallback: HeuristicBackend,
+}
+
+impl<G: LlmTextGenerator> LlmRefineBackend<G> {
+    pub fn new(llm: G) -> Self {
+        Self {
+            llm,
+            fallback: HeuristicBackend,
+        }
+    }
+
+    /// LLM output if non-empty, else the heuristic fallback.
+    fn or_fallback(llm: Option<String>, fallback: impl FnOnce() -> String) -> String {
+        llm.map(|s| s.trim().to_owned())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(fallback)
+    }
+}
+
+impl<G: LlmTextGenerator> RefineBackend for LlmRefineBackend<G> {
+    fn summarize(&self, raw: &str) -> String {
+        let prompt = format!(
+            "Rewrite the captured note below as one clear sentence. Fix spelling \
+             and grammar, keep the original meaning, do not add facts. Reply with \
+             the sentence only.\n\nNote: {raw}"
+        );
+        let summary =
+            Self::or_fallback(self.llm.complete(&prompt), || self.fallback.summarize(raw));
+        // Preserve the pipeline's 96-char summary invariant regardless of source.
+        summary.chars().take(96).collect()
+    }
+
+    fn latent_need(&self, raw: &str, summary: &str) -> String {
+        let prompt = format!(
+            "In one short phrase, name the unspoken need or concern beneath this \
+             note. Reply with the phrase only.\n\nNote: {raw}"
+        );
+        Self::or_fallback(self.llm.complete(&prompt), || {
+            self.fallback.latent_need(raw, summary)
+        })
+    }
+
+    fn contradiction(&self, raw: &str) -> String {
+        let prompt = format!(
+            "If this note contains a tension or contradiction, state it in one \
+             short phrase. If there is none, reply exactly with: none.\n\nNote: {raw}"
+        );
+        match self.llm.complete(&prompt) {
+            Some(text) if text.trim().eq_ignore_ascii_case("none") => no_contradiction(),
+            other => Self::or_fallback(other, || self.fallback.contradiction(raw)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct MockLlm {
+        reply: Option<String>,
+    }
+
+    impl LlmTextGenerator for MockLlm {
+        fn complete(&self, _prompt: &str) -> Option<String> {
+            self.reply.clone()
+        }
+    }
+
+    #[test]
+    fn llm_backend_uses_model_output_when_available() {
+        let llm = MockLlm {
+            reply: Some("The sales team is confident but support sees confusion.".to_owned()),
+        };
+        let backend = LlmRefineBackend::new(llm);
+        let summary = backend.summarize("the sales team sez rollot fine but suport seez confushion");
+        assert!(summary.contains("confusion"), "should use corrected LLM text");
+        assert!(summary.chars().count() <= 96);
+    }
+
+    #[test]
+    fn llm_backend_falls_back_to_heuristic_when_unavailable() {
+        let backend = LlmRefineBackend::new(MockLlm { reply: None });
+        let raw = "Sales says fine, but support sees confusion.";
+        assert_eq!(backend.summarize(raw), HeuristicBackend.summarize(raw));
+        assert_eq!(backend.contradiction(raw), HeuristicBackend.contradiction(raw));
+    }
+
+    #[test]
+    fn llm_backend_maps_none_contradiction() {
+        let backend = LlmRefineBackend::new(MockLlm {
+            reply: Some("none".to_owned()),
+        });
+        assert_eq!(backend.contradiction("a calm neutral note"), no_contradiction());
+    }
+
+    #[test]
+    fn refine_capture_drives_the_loop_with_an_llm_backend() {
+        let llm = MockLlm {
+            reply: Some("Corrected, polished summary text.".to_owned()),
+        };
+        let refined = refine_capture_with("messy input but tension", Arc::new(LlmRefineBackend::new(llm)));
+        assert!(!refined.summary.is_empty());
+        assert!((0.0..=1.0).contains(&refined.confidence));
+    }
 
     #[test]
     fn formation_converges_in_multiple_cycles() {
