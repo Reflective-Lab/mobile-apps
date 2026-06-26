@@ -183,11 +183,43 @@ pub fn draft_field_signal(
     modality: SignalModality,
     raw_capture: &str,
 ) -> QuorumSignalDraft {
-    // Run the on-device Converge fixed-point formation over the raw capture.
-    // This sharpens the participant's own signal locally; it never promotes
-    // facts or computes collective state (ADR 0002). Infallible by design.
-    let refined = crate::refine::refine_capture(raw_capture);
+    // Run the on-device Converge fixed-point formation over the raw capture
+    // with the default deterministic backend. Sharpens the participant's own
+    // signal locally; never promotes facts or computes collective state
+    // (ADR 0002). Infallible by design.
+    draft_from_refined(
+        inquiry_thread_id,
+        modality,
+        raw_capture,
+        crate::refine::refine_capture(raw_capture),
+    )
+}
 
+/// Same as [`draft_field_signal`], but the refinement loop uses `backend` for
+/// the language work (e.g. an [`crate::refine::LlmRefineBackend`] wrapping a
+/// device or cloud model), with the deterministic heuristic as the per-field
+/// fallback. This is the M6 compute-placement entry point the FFI uses when the
+/// native shell supplies an LLM.
+pub fn draft_field_signal_with_backend(
+    inquiry_thread_id: &str,
+    modality: SignalModality,
+    raw_capture: &str,
+    backend: std::sync::Arc<dyn crate::refine::RefineBackend>,
+) -> QuorumSignalDraft {
+    draft_from_refined(
+        inquiry_thread_id,
+        modality,
+        raw_capture,
+        crate::refine::refine_capture_with(raw_capture, backend),
+    )
+}
+
+fn draft_from_refined(
+    inquiry_thread_id: &str,
+    modality: SignalModality,
+    raw_capture: &str,
+    refined: crate::refine::RefinedSignal,
+) -> QuorumSignalDraft {
     QuorumSignalDraft {
         workflow_id: WorkflowId::field_signal_capture(),
         draft_id: DraftId::new(format!("draft:{inquiry_thread_id}:field-signal-v1")),

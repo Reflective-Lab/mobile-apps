@@ -210,6 +210,16 @@ dictionary FfiDirectorSnapshot {
     FfiDirectorFrame frame;
 };
 
+// On-device language-model seam (M6 compute placement). The native shell
+// supplies an implementation that runs the device-embedded LLM (iOS Foundation
+// Models / Android Gemini Nano) or a cloud model, and returns null when no
+// model is available so the Rust refiner falls back to its deterministic
+// heuristics. Called off-main behind the actor bridge (ADR 0003), so a blocking
+// native implementation never freezes the UI.
+callback interface LlmBackend {
+    string? complete(string prompt);
+};
+
 namespace quorum_ffi {
     // Initialise Rust-side crash/error reporting (Sentry). Idempotent — only the
     // first call wires the client. DSN/environment/release come from the host app
@@ -234,6 +244,17 @@ namespace quorum_ffi {
         string inquiry_thread_id,
         SignalModality modality,
         string raw_capture
+    );
+
+    // Same as quorum_draft_field_signal, but the on-device refinement loop uses
+    // the supplied LLM backend for the language work (summary/latent/contradiction),
+    // with the deterministic heuristic as the per-field fallback when the model
+    // returns null. No [Throws]: the loop is infallible at this boundary.
+    FfiQuorumSignalDraft quorum_draft_field_signal_with_llm(
+        string inquiry_thread_id,
+        SignalModality modality,
+        string raw_capture,
+        LlmBackend llm
     );
 
     // Still throws: `confidence` is a float and must be range-checked here.

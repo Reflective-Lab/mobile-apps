@@ -336,6 +336,51 @@ pub fn run_mock_collaboration(
 }
 
 // ---------------------------------------------------------------------------
+// On-device LLM seam (M6 compute placement). The native shell implements the
+// `LlmBackend` callback interface (device-embedded model or cloud); this adapter
+// bridges it to mobile-core's `LlmTextGenerator`, and `LlmRefineBackend` keeps
+// the deterministic heuristic as the per-field fallback when the model is gone.
+// ---------------------------------------------------------------------------
+/// Native-implemented language model — the UniFFI `callback interface LlmBackend`
+/// declared in the UDL. The Swift/Kotlin shell implements this with a device or
+/// cloud model; `complete` returns `None` when no model is available, so the
+/// Rust refiner falls back to its deterministic heuristics.
+pub trait LlmBackend: Send + Sync {
+    fn complete(&self, prompt: String) -> Option<String>;
+}
+
+struct ForeignLlm {
+    inner: Box<dyn LlmBackend>,
+}
+
+impl reflective_mobile_core::refine::LlmTextGenerator for ForeignLlm {
+    fn complete(&self, prompt: &str) -> Option<String> {
+        self.inner.complete(prompt.to_owned())
+    }
+}
+
+/// Draft a field signal whose refinement loop uses the native-supplied LLM
+/// backend (with heuristic fallback per field). No `[Throws]`: the loop is
+/// infallible at this boundary.
+pub fn quorum_draft_field_signal_with_llm(
+    inquiry_thread_id: String,
+    modality: SignalModality,
+    raw_capture: String,
+    llm: Box<dyn LlmBackend>,
+) -> FfiQuorumSignalDraft {
+    let backend = std::sync::Arc::new(reflective_mobile_core::refine::LlmRefineBackend::new(
+        ForeignLlm { inner: llm },
+    ));
+    let draft = reflective_mobile_core::quorum::draft_field_signal_with_backend(
+        &inquiry_thread_id,
+        modality.into(),
+        &raw_capture,
+        backend,
+    );
+    to_ffi_draft(&draft)
+}
+
+// ---------------------------------------------------------------------------
 // Boundary mappings — the single home for String/float <-> domain conversion.
 // ---------------------------------------------------------------------------
 fn to_ffi_draft(draft: &QuorumSignalDraft) -> FfiQuorumSignalDraft {
