@@ -16,6 +16,10 @@ final class QuorumUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        let signalCapture = app.buttons["Signal Capture"]
+        XCTAssertTrue(signalCapture.waitForExistence(timeout: 10), "Signal Capture entry point should be present")
+        signalCapture.tap()
+
         // 1. Draft a signal.
         let createDraft = app.buttons["Create Draft"]
         XCTAssertTrue(createDraft.waitForExistence(timeout: 10), "Create Draft button should be present")

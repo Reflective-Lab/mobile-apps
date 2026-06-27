@@ -10,9 +10,10 @@
 //! system enforces it at compile time, which is why this file no longer needs to.
 
 use quorum_ffi::{
-    AppendEventType, ConsentState, FfiQuorumSignalDraft, QuorumError, SignalModality, SyncState,
-    ai_execution_home, mobile_portfolio, quorum_append_consented_signal, quorum_draft_field_signal,
-    quorum_field_signal_workflow_id,
+    AppendEventType, ConsentState, DirectorIntentKind, FfiDirectorIntent, FfiQuorumSignalDraft,
+    GateVerdict, QuorumError, SignalModality, SyncState, ai_execution_home, mobile_portfolio,
+    quorum_append_consented_signal, quorum_current_director_snapshot, quorum_draft_field_signal,
+    quorum_field_signal_workflow_id, quorum_submit_director_intent,
 };
 
 const VALID_MODALITIES: [SignalModality; 3] = [
@@ -67,6 +68,30 @@ fn public_ffi_surface_is_callable() {
     let _ = ai_execution_home("ios".to_owned(), "structured-extraction".to_owned());
     let draft = valid_draft();
     let _ = quorum_append_consented_signal(draft);
+    let _ = quorum_current_director_snapshot();
+    quorum_submit_director_intent(FfiDirectorIntent {
+        kind: DirectorIntentKind::RequestContext,
+        frame_id: None,
+        choice_id: None,
+        gate_id: None,
+        gate_verdict: None,
+        review_stance: None,
+        context_level: Some(quorum_ffi::ContextLevel::Session),
+    });
+}
+
+#[test]
+fn director_snapshot_matches_fixture_version() {
+    let snapshot = quorum_current_director_snapshot();
+    assert_eq!(snapshot.version, 1844);
+    assert_eq!(
+        snapshot
+            .frame
+            .now
+            .as_ref()
+            .map(|now| now.objective.as_str()),
+        Some("Evaluate Vendor X's security claims")
+    );
 }
 
 // ---------------------------------------------------------------------------

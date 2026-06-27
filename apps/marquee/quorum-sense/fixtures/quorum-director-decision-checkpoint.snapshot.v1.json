@@ -1,0 +1,64 @@
+{
+  "version": 1844,
+  "frame": {
+    "frame_id": "director-frame:session:procurement-security-review:1844",
+    "title": "The procurement formation has reached a decision checkpoint.",
+    "subtitle": "Good morning Kenneth.",
+    "now": {
+      "objective": "Evaluate Vendor X's security claims",
+      "needed_from_user": "Review the encryption section",
+      "estimated_minutes": 4
+    },
+    "waiting_for": {
+      "kind": "nobody"
+    },
+    "primary": {
+      "label": "Open Review",
+      "intent": {
+        "kind": "open_task",
+        "frame_id": "director-frame:session:procurement-security-review:1844"
+      }
+    },
+    "secondary": [
+      {
+        "label": "Reject",
+        "intent": {
+          "kind": "respond_gate",
+          "gate_id": "gate:procurement-security-approval",
+          "verdict": "reject"
+        }
+      }
+    ],
+    "prompt": {
+      "kind": "judgment",
+      "question": "Does Vendor X's encryption section support the procurement claim?",
+      "body": "Vendor X states that customer records are encrypted at rest with AES-256 and in transit with TLS 1.3. The claim does not state key ownership or customer-managed key support.",
+      "choices": [
+        {
+          "choice_id": "choice:yes",
+          "label": "Yes"
+        },
+        {
+          "choice_id": "choice:no",
+          "label": "No"
+        },
+        {
+          "choice_id": "choice:unsure",
+          "label": "Unsure"
+        }
+      ]
+    },
+    "presence": [
+      {
+        "actor_label": "Maria",
+        "status": "waiting_on_you"
+      },
+      {
+        "actor_label": "Legal",
+        "status": "available"
+      }
+    ],
+    "context_trail": ["task", "session", "formation", "organization"],
+    "blocking": "blocks_formation"
+  }
+}

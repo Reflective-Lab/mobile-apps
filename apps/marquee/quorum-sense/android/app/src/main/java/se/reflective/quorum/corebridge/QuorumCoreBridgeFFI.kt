@@ -5,12 +5,16 @@ import kotlinx.coroutines.withContext
 import se.reflective.quorum.capture.Confidence
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
+import se.reflective.quorum.director.DirectorIntent
+import se.reflective.quorum.director.DirectorSnapshot
 import uniffi.quorum_ffi.FfiQuorumAppendEvent
 import uniffi.quorum_ffi.FfiQuorumSignalDraft
 import uniffi.quorum_ffi.SignalModality
 import uniffi.quorum_ffi.quorumAppendConsentedSignal
 import uniffi.quorum_ffi.quorumDraftFieldSignal
 import uniffi.quorum_ffi.quorumFieldSignalWorkflowId
+import uniffi.quorum_ffi.quorumCurrentDirectorSnapshot
+import uniffi.quorum_ffi.quorumSubmitDirectorIntent
 
 /**
  * Raised when the Rust core returns a value this app build cannot map into a
@@ -42,6 +46,17 @@ sealed class CoreBridgeException(message: String) : Exception(message) {
 class QuorumCoreBridgeFFI : QuorumCoreBridge {
     override suspend fun workflowId(): String =
         withContext(Dispatchers.Default) { quorumFieldSignalWorkflowId() }
+
+    override suspend fun currentDirectorSnapshot(): DirectorSnapshot =
+        withContext(Dispatchers.Default) {
+            DirectorBridgeMapping.toDomain(quorumCurrentDirectorSnapshot())
+        }
+
+    override suspend fun submitDirectorIntent(intent: DirectorIntent) {
+        withContext(Dispatchers.Default) {
+            quorumSubmitDirectorIntent(DirectorBridgeMapping.toFfi(intent))
+        }
+    }
 
     override suspend fun draftFieldSignal(
         inquiryThreadId: String,

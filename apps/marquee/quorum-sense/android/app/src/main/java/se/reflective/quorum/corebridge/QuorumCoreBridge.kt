@@ -3,6 +3,9 @@ package se.reflective.quorum.corebridge
 import se.reflective.quorum.capture.Confidence
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
+import se.reflective.quorum.director.DirectorFixture
+import se.reflective.quorum.director.DirectorIntent
+import se.reflective.quorum.director.DirectorSnapshot
 import uniffi.quorum_ffi.AppendEventType
 import uniffi.quorum_ffi.ConsentState
 import uniffi.quorum_ffi.SignalModality
@@ -10,6 +13,10 @@ import uniffi.quorum_ffi.SyncState
 
 interface QuorumCoreBridge {
     suspend fun workflowId(): String
+
+    suspend fun currentDirectorSnapshot(): DirectorSnapshot
+
+    suspend fun submitDirectorIntent(intent: DirectorIntent)
 
     suspend fun draftFieldSignal(
         inquiryThreadId: String,
@@ -22,6 +29,14 @@ interface QuorumCoreBridge {
 
 class PreviewQuorumCoreBridge : QuorumCoreBridge {
     override suspend fun workflowId(): String = "quorum.field_signal_capture.v1"
+
+    override suspend fun currentDirectorSnapshot(): DirectorSnapshot =
+        DirectorFixture.quorumDecisionCheckpoint
+
+    override suspend fun submitDirectorIntent(intent: DirectorIntent) {
+        // Preview bridge is intentionally side-effect free; production routing
+        // will hand this typed intent to helm-client once Plan 1 lands.
+    }
 
     override suspend fun draftFieldSignal(
         inquiryThreadId: String,

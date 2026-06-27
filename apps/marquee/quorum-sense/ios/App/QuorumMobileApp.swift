@@ -87,8 +87,20 @@ struct QuorumMobileApp: App {
 struct RootView: View {
     var body: some View {
         NavigationStack {
-            SignalCaptureView(bridge: QuorumCoreBridgeFFI())
-                .navigationTitle("Quorum")
+            List {
+                NavigationLink("AI Director") {
+                    DirectorNowView(bridge: QuorumCoreBridgeFFI())
+                        .navigationTitle("Director")
+                }
+
+                NavigationLink("Signal Capture") {
+                    SignalCaptureView(bridge: QuorumCoreBridgeFFI())
+                        .navigationTitle("Signal Capture")
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Brand.paper.ignoresSafeArea())
+            .navigationTitle("Quorum")
         }
     }
 }

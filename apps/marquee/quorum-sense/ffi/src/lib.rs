@@ -4,6 +4,16 @@
 // canonical contract in schemas/quorum-mobile.udl).
 uniffi::include_scaffolding!("quorum_mobile");
 
+mod director;
+
+pub use director::{
+    BlockingState, ContextLevel, DirectorIntentKind, DirectorPromptKind, FfiChoice,
+    FfiDirectorFrame, FfiDirectorIntent, FfiDirectorPrompt, FfiDirectorSnapshot, FfiGatePrompt,
+    FfiJudgmentPrompt, FfiNowTask, FfiPresenceHint, FfiPrimaryAction, FfiReviewPrompt,
+    FfiSecondaryAction, FfiWaitingFor, GateVerdict, ReviewStance, WaitingForKind,
+    quorum_current_director_snapshot, quorum_submit_director_intent,
+};
+
 use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};
 use reflective_mobile_core::quorum::{
     AppendEventType as DomainAppendEventType, Confidence, ConsentState as DomainConsentState,

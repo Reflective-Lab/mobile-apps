@@ -4,6 +4,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import se.reflective.quorum.capture.Confidence
+import se.reflective.quorum.director.DirectorFixture
+import se.reflective.quorum.director.DirectorIntent
+import se.reflective.quorum.director.GateVerdict
 import uniffi.quorum_ffi.AppendEventType
 import uniffi.quorum_ffi.ConsentState
 import uniffi.quorum_ffi.SignalModality
@@ -29,6 +32,29 @@ class PreviewQuorumCoreBridgeSpec : FunSpec({
             event.syncState shouldBe SyncState.QUEUED_FOR_SYNC
             event.draftId shouldBe draft.draftId
             event.inquiryThreadId shouldBe draft.inquiryThreadId
+        }
+    }
+
+    test("preview bridge exposes the derived Director snapshot") {
+        runTest {
+            val bridge = PreviewQuorumCoreBridge()
+            val snapshot = bridge.currentDirectorSnapshot()
+
+            snapshot.version shouldBe 1844L
+            snapshot.frame.now?.objective shouldBe "Evaluate Vendor X's security claims"
+            snapshot.frame.secondary.map { it.label } shouldBe listOf("Reject")
+        }
+    }
+
+    test("preview bridge accepts typed Director intents") {
+        runTest {
+            val bridge = PreviewQuorumCoreBridge()
+            bridge.submitDirectorIntent(
+                DirectorIntent.RespondGate(
+                    gateId = "gate:procurement-security-approval",
+                    verdict = GateVerdict.APPROVE,
+                ),
+            )
         }
     }
 })

@@ -1,0 +1,105 @@
+{
+  "id": "quorum.director.decision_checkpoint.input.v1",
+  "version": 1,
+  "product": "quorum-sense",
+  "description": "Canonical-ish Session Spine input event stream for the first Quorum AI Director decision checkpoint fixture.",
+  "projection_contract": {
+    "canonical_owner": "director-contracts",
+    "projector": "helm-client",
+    "snapshot_version_source": "runway-app-host SSE sequence",
+    "fixture_status": "consumer fixture aligned to director-contracts DirectorSnapshot"
+  },
+  "session": {
+    "session_id": "session:procurement-security-review",
+    "formation_id": "formation:vendor-x-security-claims",
+    "objective": "Evaluate Vendor X's security claims",
+    "user": {
+      "participant_id": "participant:kenneth",
+      "display_name": "Kenneth",
+      "role": "approver"
+    },
+    "context": {
+      "business_truth_ids": [
+        "truth:vendor-x-handles-eu-customer-data",
+        "truth:legal-requires-encryption-claims-review"
+      ],
+      "evidence_ids": [
+        "evidence:vendor-x-security-whitepaper",
+        "evidence:soc2-control-mapping",
+        "evidence:pricing-anomaly-note"
+      ],
+      "active_participants": [
+        {
+          "participant_id": "participant:maria",
+          "display_name": "Maria",
+          "presence": "waiting_on_you"
+        },
+        {
+          "participant_id": "participant:legal",
+          "display_name": "Legal",
+          "presence": "available"
+        }
+      ]
+    }
+  },
+  "events": [
+    {
+      "sequence": 1842,
+      "type": "SessionPush",
+      "urgency": "interrupting",
+      "payload": {
+        "push_id": "push:vendor-x-encryption-review",
+        "headline": "Maria needs your opinion.",
+        "body": "Review the encryption section and decide whether the claim is acceptable for the procurement memo.",
+        "estimated_minutes": 4,
+        "waiting_for": "Nobody"
+      }
+    },
+    {
+      "sequence": 1843,
+      "type": "JudgmentPrompt",
+      "payload": {
+        "prompt_id": "judgment:vendor-x-encryption-claim",
+        "question": "Does Vendor X's encryption section support the procurement claim?",
+        "evidence_excerpt": "Vendor X states that customer records are encrypted at rest with AES-256 and in transit with TLS 1.3. The claim does not state key ownership or customer-managed key support.",
+        "choices": [
+          {
+            "choice_id": "choice:yes",
+            "label": "Yes",
+            "meaning": "claim_supported"
+          },
+          {
+            "choice_id": "choice:no",
+            "label": "No",
+            "meaning": "claim_not_supported"
+          },
+          {
+            "choice_id": "choice:unsure",
+            "label": "Unsure",
+            "meaning": "needs_more_evidence"
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 1844,
+      "type": "GateCondition",
+      "payload": {
+        "gate_id": "gate:procurement-security-approval",
+        "reason": "Security approval is required before the formation can publish the procurement recommendation.",
+        "consequence": "Without approval the recommendation remains blocked and the vendor memo cannot advance.",
+        "deadline": "2026-06-27T15:30:00Z",
+        "allowed_decisions": [
+          "Approve",
+          "Reject"
+        ]
+      }
+    }
+  ],
+  "expected_projection": {
+    "snapshot_fixture": "quorum-director-decision-checkpoint.snapshot.v1.json",
+    "now_task_source_sequence": 1842,
+    "prompt_source_sequence": 1843,
+    "gate_source_sequence": 1844
+  }
+}

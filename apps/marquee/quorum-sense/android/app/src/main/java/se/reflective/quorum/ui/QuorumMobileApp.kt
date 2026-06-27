@@ -16,7 +16,9 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,19 +32,99 @@ import se.reflective.quorum.capture.QuorumAppendEvent
 import se.reflective.quorum.capture.label
 import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
 import se.reflective.quorum.corebridge.QuorumCoreBridge
+import se.reflective.quorum.director.DirectorSnapshot
+import se.reflective.quorum.ui.director.DirectorNowScreen
 import se.reflective.quorum.ui.theme.QuorumTheme
 import uniffi.quorum_ffi.SignalModality
+
+private enum class QuorumScreen {
+    Home,
+    Director,
+    SignalCapture,
+}
 
 @Composable
 fun QuorumMobileApp(bridge: QuorumCoreBridge = PreviewQuorumCoreBridge()) {
     QuorumTheme {
-        SignalCaptureScreen(bridge = bridge)
+        var screen by remember { mutableStateOf(QuorumScreen.Home) }
+
+        when (screen) {
+            QuorumScreen.Home -> HomeScreen(
+                onOpenDirector = { screen = QuorumScreen.Director },
+                onOpenSignalCapture = { screen = QuorumScreen.SignalCapture },
+            )
+
+            QuorumScreen.Director -> DirectorScreen(
+                bridge = bridge,
+                onBack = { screen = QuorumScreen.Home },
+            )
+
+            QuorumScreen.SignalCapture -> SignalCaptureScreen(
+                bridge = bridge,
+                onBack = { screen = QuorumScreen.Home },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DirectorScreen(
+    bridge: QuorumCoreBridge,
+    onBack: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var snapshot by remember { mutableStateOf<DirectorSnapshot?>(null) }
+
+    LaunchedEffect(bridge) {
+        snapshot = bridge.currentDirectorSnapshot()
+    }
+
+    Column {
+        TextButton(onClick = onBack) {
+            Text("Back")
+        }
+
+        snapshot?.let { current ->
+            DirectorNowScreen(
+                snapshot = current,
+                onIntent = { intent ->
+                    scope.launch {
+                        bridge.submitDirectorIntent(intent)
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    onOpenDirector: () -> Unit,
+    onOpenSignalCapture: () -> Unit,
+) {
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Quorum", style = MaterialTheme.typography.headlineMedium)
+            Button(onClick = onOpenDirector, modifier = Modifier.fillMaxWidth()) {
+                Text("AI Director")
+            }
+            Button(onClick = onOpenSignalCapture, modifier = Modifier.fillMaxWidth()) {
+                Text("Signal Capture")
+            }
+        }
     }
 }
 
 @Composable
 fun SignalCaptureScreen(
     bridge: QuorumCoreBridge = remember { PreviewQuorumCoreBridge() },
+    onBack: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val inquiryThreadId = "inq_mobile_launch_risks"
@@ -62,7 +144,13 @@ fun SignalCaptureScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Quorum", style = MaterialTheme.typography.headlineMedium)
+            if (onBack != null) {
+                TextButton(onClick = onBack) {
+                    Text("Back")
+                }
+            }
+
+            Text("Signal Capture", style = MaterialTheme.typography.headlineMedium)
 
             ModalitySelector(
                 selected = modality,

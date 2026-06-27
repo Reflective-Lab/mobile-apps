@@ -160,6 +160,75 @@ editable draft → explicit consent.
   Acceptance: only a consented or edited-and-consented draft can become a queued
   packet.
 
+## M3A — Quorum AI Director UX Slice
+
+Goal: make Quorum mobile feel like an AI Director, not a dashboard. This milestone
+rides alongside M3: start with preview data if needed, then align the canonical
+director contract with Helms (`director-contracts` / `helm-client`) and expose it
+through the Quorum FFI. `mobile-core` consumes/re-exports the contract and owns
+mobile snapshot envelopes and replay fixtures; it does not define a parallel
+`DirectorFrame`.
+
+Architecture source:
+`../KB/04-architecture/2026-06-27-ai-director-mobile-ux-architecture.md`
+and root epic `../KB/08-roadmap/2026-06-27-ai-director-ux-epic.md`.
+
+- [x] M3A.1 Add Quorum DirectorFrame fixture.
+  Acceptance: `apps/marquee/quorum-sense/fixtures/` contains a canonical spine
+  input event fixture (SessionPush / gate / session context shape) and a derived
+  DirectorFrame JSON fixture for a decision checkpoint. The DirectorFrame is
+  treated as a projection, not hand-authored standalone truth.
+- [x] M3A.2 Add Swift value types for Director snapshots.
+  Acceptance: iOS models `DirectorFrame`, `DirectorPrompt`, `Choice`,
+  `BlockingState`, `ContextLevel`, and action intent tokens as typed Swift
+  values mirroring the Helms contract; no raw strings in view logic beyond
+  boundary mapping.
+- [x] M3A.3 Add `DirectorNowView` in SwiftUI.
+  Acceptance: iOS can render the Morning Director / Single Task state from the
+  fixture or preview bridge with one primary action and no dashboard navigation.
+- [x] M3A.4 Add `JudgmentPromptView` in SwiftUI.
+  Acceptance: iOS renders a focused question with at most three choices and a
+  single submit action.
+- [x] M3A.5 Add `GatePromptView` in SwiftUI.
+  Acceptance: iOS renders an explicit blocking gate with consequence, deadline,
+  and bounded choices derived from `GatedDecision` / `GateCondition`. No UI-only
+  "later" verdict is allowed; defer must exist in the Helms contract before the
+  UI can send it.
+- [x] M3A.6 Add context escape affordance.
+  Acceptance: task-level UI exposes local context/session/formation levels as an
+  explicit escape hatch, but the default screen starts at the task.
+- [x] M3A.7 Route director actions as intents, not direct mutation.
+  Acceptance: UI sends typed intents such as open task, submit judgment, approve
+  gate, reject gate, request context; each intent maps to Helms/client action
+  vocabulary, and view state updates only through a snapshot.
+- [ ] M3A.8 Align DirectorFrame with Helms `director-contracts`.
+  Status: **In progress** — `mobile-core` re-exports `director-contracts`;
+  Swift/Kotlin domain structs track the canonical shape; flat enums
+  (`GateVerdict`, `ContextLevel`, …) now come from UniFFI (M3A.10). Tagged
+  shapes (`WaitingFor`, `DirectorPrompt`, `DirectorIntent`) remain host-side
+  until a future UDL interface-enum pass.
+  Acceptance: provisional Swift/Kotlin mirrors track the canonical
+  `DirectorSnapshot { version, frame }` shape; replace with UniFFI-generated or
+  mapped types once Quorum FFI exposes the contract (M3A.10). `helm-client`
+  remains the projector from ordered spine events.
+- [ ] M3A.9 Add mobile-core snapshot envelope and replay harness.
+  Interim: `crates/mobile-core/src/director.rs` re-exports `director-contracts`,
+  deserializes the golden snapshot fixture, and exposes
+  `gate_condition_wire_label` for UniFFI; live projection via `helm-client` +
+  `QuorumDomainPresenter` is follow-up.
+  Acceptance: `crates/mobile-core` carries an immutable versioned mobile snapshot
+  envelope that includes the Helms DirectorFrame and derives its version from the
+  upstream SSE sequence; golden replay tests project canonical spine fixtures
+  into DirectorFrame.
+- [x] M3A.10 Expose director snapshot through Quorum FFI.
+  Acceptance: `apps/marquee/quorum-sense/ffi` emits the fixture-backed
+  `DirectorSnapshot` through UniFFI (`quorum_current_director_snapshot`,
+  `quorum_submit_director_intent`); Swift/Kotlin production bridges map wire
+  DTOs at `DirectorBridgeMapping`.
+- [x] M3A.11 Draft Android Compose parity screen.
+  Acceptance: Android renders the same fixture as a Compose Now screen with
+  semantic parity, not necessarily pixel parity.
+
 ## M4 — Shared Consent, Offline Queue, And Sync Core
 
 Goal: make offline operation durable and reusable across the portfolio.

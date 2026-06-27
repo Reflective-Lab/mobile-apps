@@ -72,6 +72,138 @@ dictionary FfiQuorumAppendEvent {
     SyncState sync_state;
 };
 
+enum GateVerdict {
+    "Approve",
+    "Reject",
+};
+
+enum ReviewStance {
+    "Agree",
+    "Disagree",
+    "NeedMoreContext",
+};
+
+enum ContextLevel {
+    "Task",
+    "LocalContext",
+    "Session",
+    "Formation",
+    "Organization",
+    "Everything",
+};
+
+enum BlockingState {
+    "NotBlocking",
+    "BlocksFormation",
+    "BlocksSession",
+};
+
+enum WaitingForKind {
+    "Nobody",
+    "Participants",
+    "Server",
+};
+
+enum DirectorPromptKind {
+    "Judgment",
+    "Gate",
+    "Review",
+};
+
+enum DirectorIntentKind {
+    "OpenTask",
+    "SubmitJudgment",
+    "RespondGate",
+    "SubmitReview",
+    "RequestContext",
+};
+
+dictionary FfiWaitingFor {
+    WaitingForKind kind;
+    sequence<string>? actor_labels;
+};
+
+dictionary FfiNowTask {
+    string objective;
+    string? needed_from_user;
+    u32? estimated_minutes;
+};
+
+dictionary FfiChoice {
+    string choice_id;
+    string label;
+};
+
+dictionary FfiJudgmentPrompt {
+    string question;
+    string body;
+    sequence<FfiChoice> choices;
+};
+
+dictionary FfiGatePrompt {
+    string gate_id;
+    string reason;
+    string consequence;
+    u64? deadline_ms;
+    string condition_kind;
+};
+
+dictionary FfiReviewPrompt {
+    string title;
+    string primary_evidence;
+};
+
+dictionary FfiDirectorIntent {
+    DirectorIntentKind kind;
+    string? frame_id;
+    string? choice_id;
+    string? gate_id;
+    GateVerdict? gate_verdict;
+    ReviewStance? review_stance;
+    ContextLevel? context_level;
+};
+
+dictionary FfiDirectorPrompt {
+    DirectorPromptKind kind;
+    FfiJudgmentPrompt? judgment;
+    FfiGatePrompt? gate;
+    FfiReviewPrompt? review;
+};
+
+dictionary FfiPrimaryAction {
+    string label;
+    FfiDirectorIntent intent;
+};
+
+dictionary FfiSecondaryAction {
+    string label;
+    FfiDirectorIntent intent;
+};
+
+dictionary FfiPresenceHint {
+    string actor_label;
+    string status;
+};
+
+dictionary FfiDirectorFrame {
+    string frame_id;
+    string title;
+    string? subtitle;
+    FfiNowTask? now;
+    FfiWaitingFor waiting_for;
+    FfiPrimaryAction primary;
+    sequence<FfiSecondaryAction> secondary;
+    FfiDirectorPrompt? prompt;
+    sequence<FfiPresenceHint> presence;
+    sequence<ContextLevel> context_trail;
+    BlockingState blocking;
+};
+
+dictionary FfiDirectorSnapshot {
+    u64 version;
+    FfiDirectorFrame frame;
+};
+
 namespace quorum_ffi {
     // Initialise Rust-side crash/error reporting (Sentry). Idempotent — only the
     // first call wires the client. DSN/environment/release come from the host app
@@ -103,4 +235,9 @@ namespace quorum_ffi {
     FfiQuorumAppendEvent quorum_append_consented_signal(
         FfiQuorumSignalDraft draft
     );
+
+    // AI Director projection boundary (director-contracts via mobile-core).
+    FfiDirectorSnapshot quorum_current_director_snapshot();
+
+    void quorum_submit_director_intent(FfiDirectorIntent intent);
 };

@@ -28,6 +28,32 @@ struct BridgeBoundaryTests {
         #expect(event.inquiryThreadId == draft.inquiryThreadId)
     }
 
+    @Test("preview bridge exposes the derived Director snapshot")
+    func previewDirectorSnapshot() async throws {
+        let bridge = PreviewQuorumCoreBridge()
+        let snapshot = try await bridge.currentDirectorSnapshot()
+
+        #expect(snapshot.version == 1844)
+        #expect(snapshot.frame.now?.objective == "Evaluate Vendor X's security claims")
+        #expect(snapshot.frame.secondary.contains { action in
+            if case .respondGate(_, .reject) = action.intent { return true }
+            return false
+        })
+    }
+
+    @Test("Director actions cross the bridge as typed intents")
+    func spyRecordsDirectorIntent() async throws {
+        let spy = SpyQuorumCoreBridge()
+        try await spy.submitDirectorIntent(.respondGate(
+            gateId: "gate:procurement-security-approval",
+            verdict: .approve
+        ))
+
+        #expect(spy.directorIntentCalls == [
+            .respondGate(gateId: "gate:procurement-security-approval", verdict: .approve),
+        ])
+    }
+
     @Test("spy records the draft call and propagates a stubbed error")
     func spyRecordsAndThrows() async throws {
         let spy = SpyQuorumCoreBridge()

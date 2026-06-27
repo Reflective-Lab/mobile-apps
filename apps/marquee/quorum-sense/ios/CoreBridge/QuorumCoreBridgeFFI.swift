@@ -34,6 +34,15 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         quorumFieldSignalWorkflowId()
     }
 
+    public func currentDirectorSnapshot() async throws -> DirectorSnapshot {
+        let snapshot = quorumCurrentDirectorSnapshot()
+        return DirectorBridgeMapping.domainSnapshot(snapshot)
+    }
+
+    public func submitDirectorIntent(_ intent: DirectorIntent) async throws {
+        quorumSubmitDirectorIntent(intent: DirectorBridgeMapping.ffiIntent(intent))
+    }
+
     public func draftFieldSignal(
         inquiryThreadId: String,
         modality: SignalModality,

@@ -23,4 +23,12 @@ struct SnapshotTests {
         )
         assertSnapshot(of: event, as: .dump)
     }
+
+    @Test func directorSnapshotMatchesFixtureContract() {
+        let snapshot = DirectorFixture.quorumDecisionCheckpoint
+
+        #expect(snapshot.version == 1844)
+        #expect(snapshot.frame.now?.objective == "Evaluate Vendor X's security claims")
+        #expect(snapshot.frame.blocking == .blocksFormation)
+    }
 }

@@ -6,6 +6,8 @@ import Foundation
 // methods let an actor- or main-actor-isolated witness satisfy them.
 public protocol QuorumCoreBridge: Sendable {
     func workflowId() async -> String
+    func currentDirectorSnapshot() async throws -> DirectorSnapshot
+    func submitDirectorIntent(_ intent: DirectorIntent) async throws
     func draftFieldSignal(
         inquiryThreadId: String,
         modality: SignalModality,
@@ -19,6 +21,16 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
 
     public func workflowId() async -> String {
         "quorum.field_signal_capture.v1"
+    }
+
+    public func currentDirectorSnapshot() async throws -> DirectorSnapshot {
+        DirectorFixture.quorumDecisionCheckpoint
+    }
+
+    public func submitDirectorIntent(_ intent: DirectorIntent) async throws {
+        // Preview bridge is intentionally side-effect free; production routing
+        // will hand this typed intent to helm-client once Plan 1 lands.
+        _ = intent
     }
 
     public func draftFieldSignal(

@@ -1,3 +1,5 @@
+pub mod director_presenter;
+
 pub const FIELD_SIGNAL_CAPTURE_WORKFLOW_ID: &str = "quorum.field_signal_capture.v1";
 pub const FIELD_SIGNAL_CAPTURE_FIXTURE_JSON: &str =
     include_str!("../../../apps/marquee/quorum-sense/fixtures/field-signal-capture.v1.json");

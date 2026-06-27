@@ -6,7 +6,10 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+pub mod director;
 pub mod quorum;
+
+pub use quorum::director_presenter::QuorumDomainPresenter;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProductFamily {
