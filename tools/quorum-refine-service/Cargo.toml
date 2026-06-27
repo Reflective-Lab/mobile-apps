@@ -1,11 +1,12 @@
 # Local dev refine-service: the cloud-fallback tier for the Quorum mobile
 # on-device refinement loop (M6 placement). The emulator's native LlmBackend
-# POSTs prompts here; this process holds the API keys (via Manifold's secret
-# provider, populated from the macOS Keychain by direnv), so keys never reach
-# the device. Production is the same shape behind GC Secrets.
+# POSTs prompts here; this process holds the API keys (read from the env,
+# populated from the macOS Keychain by direnv), so keys never reach the device.
+# Production is the same shape behind GC Secrets.
 #
-# Its own [workspace] so it is independent of the mobile-apps cargo workspace —
-# Manifold/tokio/reqwest never enter the mobile build or trip the deny boundary.
+# Self-contained: it calls Anthropic / OpenAI directly via reqwest, so it does
+# NOT depend on the (churning, multi-repo) Manifold tree. Its own [workspace] so
+# it never enters the mobile-apps cargo workspace or trips the deny boundary.
 #
 # Run from the reflective tree (direnv loads the keys):
 #   cargo run --manifest-path mobile-apps/tools/quorum-refine-service/Cargo.toml
@@ -18,9 +19,10 @@ edition = "2021"
 publish = false
 
 [dependencies]
-manifold = { path = "../../../mosaic-extensions/manifold-adapters/crates/manifold", features = ["anthropic", "openai"] }
-converge-provider = { path = "../../../bedrock-platform/converge/crates/provider" }
 axum = "0.7"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+# rustls-tls so it builds without OpenSSL; json for request/response bodies.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 anyhow = "1"
