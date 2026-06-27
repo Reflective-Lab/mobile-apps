@@ -14,11 +14,13 @@ import se.reflective.quorum.queue.QuorumQueuePersistence
 import uniffi.quorum_ffi.ConsentDecision
 import uniffi.quorum_ffi.FfiQuorumAppendEvent
 import uniffi.quorum_ffi.FfiQuorumSignalDraft
+import uniffi.quorum_ffi.LlmBackend
 import uniffi.quorum_ffi.SignalModality
 import uniffi.quorum_ffi.quorumAppendConsentedSignal
 import uniffi.quorum_ffi.quorumCurrentDirectorSnapshot
 import uniffi.quorum_ffi.quorumDirectorSnapshotSource
 import uniffi.quorum_ffi.quorumDraftFieldSignal
+import uniffi.quorum_ffi.quorumDraftFieldSignalWithLlm
 import uniffi.quorum_ffi.quorumFieldSignalWorkflowId
 import uniffi.quorum_ffi.quorumSubmitDirectorIntent
 import uniffi.quorum_ffi.quorumWaitDirectorUpdate
@@ -49,6 +51,11 @@ class QuorumCoreBridgeFFI(
                 clientVersion = context.applicationContext.clientVersion(),
             )
 
+    // Cloud-fallback LLM for the on-device refinement loop (M6). Passed into the
+    // Rust loop; returns null when the local refine-service is unreachable, so
+    // the Rust refiner falls back to its deterministic heuristics.
+    private val llm: LlmBackend = RefineServiceLlm()
+
     override suspend fun workflowId(): String =
         withContext(Dispatchers.Default) { quorumFieldSignalWorkflowId() }
 
@@ -77,7 +84,7 @@ class QuorumCoreBridgeFFI(
         rawCapture: String,
     ): FieldSignalDraft =
         withContext(Dispatchers.Default) {
-            quorumDraftFieldSignal(inquiryThreadId, modality, rawCapture).toDomain()
+            quorumDraftFieldSignalWithLlm(inquiryThreadId, modality, rawCapture, llm).toDomain()
         }
 
     override suspend fun appendConsentedSignal(draft: FieldSignalDraft): QuorumAppendEvent =

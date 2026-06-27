@@ -48,6 +48,11 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         }
     }
 
+    // Cloud-fallback LLM for the on-device refinement loop (M6). Passed into the
+    // Rust loop; returns nil when the local refine-service is unreachable, so the
+    // Rust refiner falls back to its deterministic heuristics.
+    private let llm: any LlmBackend = RefineServiceLlm()
+
     public func workflowId() async -> String {
         quorumFieldSignalWorkflowId()
     }
@@ -74,10 +79,11 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         modality: SignalModality,
         rawCapture: String
     ) async throws -> FieldSignalDraft {
-        let draft = quorumDraftFieldSignal(
+        let draft = quorumDraftFieldSignalWithLlm(
             inquiryThreadId: inquiryThreadId,
             modality: modality,
-            rawCapture: rawCapture
+            rawCapture: rawCapture,
+            llm: llm
         )
         return try Self.domainDraft(draft)
     }

@@ -75,5 +75,13 @@ xcodebuild -create-xcframework \
 
 cp "$GEN_DIR/${LIB_BASENAME}.swift" "$OUT_DIR/$FRAMEWORK.swift"
 
+# UniFFI 0.31 emits the callback-interface vtable pointer as a `static let` of a
+# non-Sendable `UnsafePointer`, which Swift 6 strict concurrency rejects. The
+# pointer is initialised once and never mutated (it lives for the process
+# lifetime so Rust can call back), so it is genuinely safe — mark it
+# `nonisolated(unsafe)`. Surgical post-gen fixup so it survives regeneration
+# without disabling strict concurrency for the app.
+sed -i '' 's/^\( *\)static let vtablePtr:/\1nonisolated(unsafe) static let vtablePtr:/' "$OUT_DIR/$FRAMEWORK.swift"
+
 echo "✓ $OUT_DIR/$FRAMEWORK.xcframework"
 echo "✓ $OUT_DIR/$FRAMEWORK.swift"
