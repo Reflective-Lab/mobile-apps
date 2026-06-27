@@ -1,0 +1,26 @@
+# Local dev refine-service: the cloud-fallback tier for the Quorum mobile
+# on-device refinement loop (M6 placement). The emulator's native LlmBackend
+# POSTs prompts here; this process holds the API keys (via Manifold's secret
+# provider, populated from the macOS Keychain by direnv), so keys never reach
+# the device. Production is the same shape behind GC Secrets.
+#
+# Its own [workspace] so it is independent of the mobile-apps cargo workspace —
+# Manifold/tokio/reqwest never enter the mobile build or trip the deny boundary.
+#
+# Run from the reflective tree (direnv loads the keys):
+#   cargo run --manifest-path mobile-apps/tools/quorum-refine-service/Cargo.toml
+[workspace]
+
+[package]
+name = "quorum-refine-service"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+manifold = { path = "../../../mosaic-extensions/manifold-adapters/crates/manifold", features = ["anthropic", "openai"] }
+converge-provider = { path = "../../../bedrock-platform/converge/crates/provider" }
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+serde = { version = "1", features = ["derive"] }
+anyhow = "1"
