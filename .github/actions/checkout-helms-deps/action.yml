@@ -1,0 +1,13 @@
+name: Checkout helms path dependencies
+description: >-
+  mobile-core path-deps to bedrock-platform/helms (director-contracts,
+  helm-client, helm-session-contracts). In CI the sibling tree is absent unless
+  we fetch it here — see crates/mobile-core/Cargo.toml.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        repository: Reflective-Lab/helms
+        path: ../bedrock-platform/helms

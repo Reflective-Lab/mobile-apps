@@ -40,6 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      - uses: ./.github/actions/checkout-helms-deps
+
       - name: Install nightly toolchain
         run: rustup toolchain install nightly --profile minimal
 
@@ -73,6 +75,8 @@ jobs:
         target: [draft_field_signal, parse_enums, confidence_roundtrip]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install nightly toolchain
         run: rustup toolchain install nightly --profile minimal
