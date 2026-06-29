@@ -56,7 +56,7 @@ jobs:
         run: cargo install cargo-fuzz --locked
 
       - name: Smoke draft_field_signal (bounded, seed corpus)
-        working-directory: crates/mobile-core/fuzz
+        working-directory: reflective/mobile-apps/crates/mobile-core/fuzz
         run: |
           mkdir -p corpus/draft_field_signal
           cargo +nightly fuzz run draft_field_signal \
@@ -99,7 +99,7 @@ jobs:
         run: cargo install cargo-fuzz --locked
 
       - name: Fuzz ${{ matrix.target }}
-        working-directory: crates/mobile-core/fuzz
+        working-directory: reflective/mobile-apps/crates/mobile-core/fuzz
         run: |
           mkdir -p corpus/${{ matrix.target }}
           cargo +nightly fuzz run ${{ matrix.target }} \

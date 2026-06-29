@@ -47,7 +47,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Format
-        run: cargo fmt --all --check
+        run: cargo fmt --check
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
@@ -129,7 +129,7 @@ jobs:
         run: just quorum-ios-gen
 
       - name: Build Quorum iOS app
-        working-directory: apps/marquee/quorum-sense/ios
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/ios
         run: |
           xcodebuild \
             -scheme QuorumMobile \
@@ -140,7 +140,7 @@ jobs:
       # Swift Testing (unit/property/stress) + SnapshotTesting golden + XCUITest.
       # The committed .dump snapshots are OS-independent, so any modern simulator works.
       - name: Test Quorum iOS app (Swift Testing + SnapshotTesting + XCUITest)
-        working-directory: apps/marquee/quorum-sense/ios
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/ios
         run: |
           xcodebuild test \
             -scheme QuorumMobile \
@@ -190,7 +190,7 @@ jobs:
         run: just ios-uniffi
 
       - name: Build iOS smoke shell
-        working-directory: templates/native-shells/ios
+        working-directory: reflective/mobile-apps/templates/native-shells/ios
         run: |
           xcodegen generate
           xcodebuild \
@@ -340,7 +340,7 @@ jobs:
         run: just quorum-android-uniffi
 
       - name: Unit tests (Kotest + MockK + Turbine)
-        working-directory: apps/marquee/quorum-sense/android
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/android
         run: ./gradlew :app:testDebugUnitTest --no-daemon
 
   android-instrumented:
@@ -405,7 +405,7 @@ jobs:
           api-level: 30
           arch: x86_64
           target: google_apis
-          working-directory: apps/marquee/quorum-sense/android
+          working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/android
           script: ./gradlew :app:connectedDebugAndroidTest --no-daemon
 
   ios-release-symbols:
@@ -466,7 +466,7 @@ jobs:
       # sentry-cli (authenticated by the SENTRY_* env above). Signing is disabled
       # so no certs/profiles are needed just to produce + upload symbols.
       - name: Build Release (device arch) and upload dSYMs
-        working-directory: apps/marquee/quorum-sense/ios
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/ios
         run: |
           xcodebuild \
             -scheme QuorumMobile \
@@ -558,7 +558,7 @@ jobs:
       # the release build — but skip -PsentryUpload so no upload task runs and the
       # job stays green instead of erroring on auth.
       - name: Assemble Release + upload symbols
-        working-directory: apps/marquee/quorum-sense/android
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/android
         run: |
           if [ -z "$SENTRY_AUTH_TOKEN" ]; then
             echo "::warning::SENTRY_AUTH_TOKEN not set — building release without Sentry symbol upload."

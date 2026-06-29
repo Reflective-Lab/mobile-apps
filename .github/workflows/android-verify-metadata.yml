@@ -68,7 +68,7 @@ jobs:
       # Merges the Linux-resolved artifacts into the committed (macOS-generated) file.
       # Write mode ignores the lenient/strict setting, so it runs regardless.
       - name: Write verification metadata (Linux artifacts merged in)
-        working-directory: apps/marquee/quorum-sense/android
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/android
         run: |
           ./gradlew --write-verification-metadata sha256 \
             assembleDebug assembleRelease assembleDebugAndroidTest testDebugUnitTest \

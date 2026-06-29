@@ -37,7 +37,7 @@ jobs:
 
       - name: Run gates
         run: |
-          cargo fmt --all --check
+          cargo fmt --check
           cargo clippy --workspace --all-targets -- -D warnings
           cargo test --workspace --locked
           cargo doc --workspace --no-deps --locked
@@ -89,7 +89,7 @@ jobs:
         run: just quorum-ios-gen
 
       - name: Build Quorum iOS app
-        working-directory: apps/marquee/quorum-sense/ios
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/ios
         run: |
           xcodebuild \
             -scheme QuorumMobile \
