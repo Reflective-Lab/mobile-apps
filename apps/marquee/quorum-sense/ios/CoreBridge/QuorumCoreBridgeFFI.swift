@@ -28,7 +28,15 @@ public enum CoreBridgeError: Error {
 /// main actor — the UI is never blocked. This matches the Android bridge, which
 /// runs the same FFI on `Dispatchers.Default`.
 public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
-    public init() {}
+    private let queuePersistence: QuorumQueuePersistence
+
+    public init(queuePersistence: QuorumQueuePersistence? = nil) throws {
+        if let queuePersistence {
+            self.queuePersistence = queuePersistence
+        } else {
+            self.queuePersistence = try QuorumQueuePersistence.production()
+        }
+    }
 
     public func workflowId() async -> String {
         quorumFieldSignalWorkflowId()
@@ -59,6 +67,14 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
     public func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
         let event = try quorumAppendConsentedSignal(draft: Self.ffiDraft(draft))
         return Self.domainEvent(event)
+    }
+
+    public func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
+        try queuePersistence.persistConsentedSignal(draft)
+    }
+
+    public func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary] {
+        try queuePersistence.loadPersistedRecords()
     }
 
     // MARK: - Boundary mapping (FFI wire DTO <-> Swift domain)

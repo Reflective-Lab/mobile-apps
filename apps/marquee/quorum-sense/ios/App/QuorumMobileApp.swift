@@ -91,17 +91,28 @@ struct QuorumMobileApp: App {
     }
 }
 
+@MainActor
 struct RootView: View {
+    private let bridge: QuorumCoreBridgeFFI
+
+    init() {
+        do {
+            bridge = try QuorumCoreBridgeFFI()
+        } catch {
+            fatalError("Failed to initialise Quorum core bridge: \(error)")
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 NavigationLink("AI Director") {
-                    DirectorNowView(bridge: QuorumCoreBridgeFFI())
+                    DirectorNowView(bridge: bridge)
                         .navigationTitle("Director")
                 }
 
                 NavigationLink("Signal Capture") {
-                    SignalCaptureView(bridge: QuorumCoreBridgeFFI())
+                    SignalCaptureView(bridge: bridge)
                         .navigationTitle("Signal Capture")
                 }
             }

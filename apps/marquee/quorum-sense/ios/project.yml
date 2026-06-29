@@ -49,6 +49,7 @@ targets:
       - App
       - Views
       - Capture
+      - Queue
       - PlatformAI
       - Resources
       - path: CoreBridge

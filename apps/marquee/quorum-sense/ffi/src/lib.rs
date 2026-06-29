@@ -5,6 +5,7 @@
 uniffi::include_scaffolding!("quorum_mobile");
 
 mod director;
+mod persistence;
 
 pub use director::{
     BlockingState, ContextLevel, DirectorIntentKind, DirectorPromptKind, FfiChoice,
@@ -13,6 +14,11 @@ pub use director::{
     FfiSecondaryAction, FfiWaitingFor, GateVerdict, ReviewStance, WaitingForKind,
     quorum_configure_director_api, quorum_current_director_snapshot,
     quorum_director_snapshot_source, quorum_submit_director_intent,
+};
+
+pub use persistence::{
+    quorum_apply_queue_transition, quorum_build_persisted_queue_record,
+    quorum_validate_persisted_queue_record, ConsentDecision, QueueState,
 };
 
 use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};
@@ -114,6 +120,12 @@ pub enum QuorumError {
     UnsupportedPlatform { value: String },
     #[error("unsupported task: {value}")]
     UnsupportedTask { value: String },
+    #[error("invalid persisted queue record: {detail}")]
+    InvalidPersistedRecord { detail: String },
+    #[error("illegal queue transition: {from} -> {to}")]
+    IllegalQueueTransition { from: String, to: String },
+    #[error("consent decision {decision} does not permit queue")]
+    ConsentDoesNotPermitQueue { decision: String },
 }
 
 impl QuorumError {
@@ -125,7 +137,10 @@ impl QuorumError {
         match self {
             QuorumError::ConfidenceOutOfRange { .. }
             | QuorumError::UnsupportedPlatform { .. }
-            | QuorumError::UnsupportedTask { .. } => false,
+            | QuorumError::UnsupportedTask { .. }
+            | QuorumError::InvalidPersistedRecord { .. }
+            | QuorumError::IllegalQueueTransition { .. }
+            | QuorumError::ConsentDoesNotPermitQueue { .. } => false,
         }
     }
 }
