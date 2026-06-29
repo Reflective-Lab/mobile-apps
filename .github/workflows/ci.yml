@@ -21,6 +21,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install Rust toolchain
@@ -84,6 +90,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install xcodegen + just
@@ -143,6 +155,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install xcodegen + just
@@ -189,6 +207,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Set up JDK 17
@@ -252,6 +276,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Set up JDK 17
@@ -321,6 +351,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Enable KVM
@@ -388,6 +424,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install xcodegen + just
@@ -445,6 +487,12 @@ jobs:
       run:
         working-directory: reflective/mobile-apps
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Set up JDK 17
