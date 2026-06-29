@@ -6,8 +6,15 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+pub mod capture;
+pub mod consent;
 pub mod director;
+pub mod queue;
 pub mod quorum;
+
+pub use capture::{CapturePacket, CapturePacketError, ConsentRecord as CaptureConsentRecord};
+pub use consent::ConsentDecision;
+pub use queue::{QueueState, QueueTransitionError, QueuedCapture, QueuedCaptureError};
 
 pub use quorum::director_presenter::QuorumDomainPresenter;
 
