@@ -3,13 +3,13 @@
 
 use reflective_mobile_core::director::{
     BlockingState as DomainBlockingState, Choice as DomainChoice,
-    ContextLevel as DomainContextLevel, DirectorFrame as DomainDirectorFrame,
+    ContextLevel as DomainContextLevel, DirectorApiConfig, DirectorFrame as DomainDirectorFrame,
     DirectorIntent as DomainDirectorIntent, DirectorPrompt as DomainDirectorPrompt,
-    DirectorSnapshot as DomainDirectorSnapshot, GateId, GateVerdict as DomainGateVerdict,
-    JudgmentPrompt as DomainJudgmentPrompt, NowTask as DomainNowTask,
-    PresenceHint as DomainPresenceHint, PrimaryAction as DomainPrimaryAction,
-    ReviewStance as DomainReviewStance, SecondaryAction as DomainSecondaryAction,
-    WaitingFor as DomainWaitingFor, gate_condition_wire_label, quorum_director_fixture_snapshot,
+    DirectorSnapshot as DomainDirectorSnapshot, DirectorSnapshotSource, GateId,
+    GateVerdict as DomainGateVerdict, NowTask as DomainNowTask, PresenceHint as DomainPresenceHint,
+    PrimaryAction as DomainPrimaryAction, ReviewStance as DomainReviewStance,
+    SecondaryAction as DomainSecondaryAction, WaitingFor as DomainWaitingFor,
+    gate_condition_wire_label, quorum_director_fixture_snapshot, resolve_director_snapshot,
 };
 use std::sync::Mutex;
 
@@ -170,17 +170,51 @@ pub struct FfiDirectorSnapshot {
 }
 
 static LAST_DIRECTOR_INTENT: Mutex<Option<DomainDirectorIntent>> = Mutex::new(None);
+static DIRECTOR_API: Mutex<Option<DirectorApiConfig>> = Mutex::new(None);
+static LAST_SNAPSHOT_SOURCE: Mutex<String> = Mutex::new(String::new());
 
-/// Returns the fixture-backed canonical director snapshot until live SSE projection
-/// is wired through `helm-client` on device.
+/// Point the director boundary at a Quorum HTTP base (e.g. local `just dev`).
+/// Idempotent; safe to call from app startup before the first snapshot read.
+pub fn quorum_configure_director_api(base_url: String, bearer_token: String) {
+    if let Ok(mut slot) = DIRECTOR_API.lock() {
+        *slot = Some(DirectorApiConfig {
+            base_url,
+            bearer_token,
+        });
+    }
+}
+
+/// Wire label for how the last snapshot was resolved (`live`, `fixture`, or
+/// `fixture_fallback:<reason>` when live fetch failed).
+#[must_use]
+pub fn quorum_director_snapshot_source() -> String {
+    LAST_SNAPSHOT_SOURCE
+        .lock()
+        .map(|label| label.clone())
+        .unwrap_or_else(|_| "unknown".to_owned())
+}
+
+/// Returns the current director snapshot: live HTTP when configured, otherwise
+/// the committed fixture. Live failures fall back to the fixture until Plan 2
+/// exposes `/api/director/snapshot` on Quorum.
 #[must_use]
 pub fn quorum_current_director_snapshot() -> FfiDirectorSnapshot {
-    let snapshot = quorum_director_fixture_snapshot().expect("director fixture must parse");
+    let config = DIRECTOR_API.lock().ok().and_then(|guard| guard.clone());
+
+    let (snapshot, source) = resolve_director_snapshot(config.as_ref()).unwrap_or_else(|_| {
+        let fixture = quorum_director_fixture_snapshot().expect("director fixture must parse");
+        (fixture, DirectorSnapshotSource::FixtureOnly)
+    });
+
+    if let Ok(mut label) = LAST_SNAPSHOT_SOURCE.lock() {
+        *label = source.wire_label();
+    }
+
     to_ffi_snapshot(&snapshot)
 }
 
-/// Accepts a typed director intent from Swift/Kotlin. Stored for tests until the
-/// live helm-client intake path is connected.
+/// Accepts a typed director intent from Swift/Kotlin. Stored locally until Plan 2
+/// wires session push and server intake; no HTTP POST yet.
 pub fn quorum_submit_director_intent(intent: FfiDirectorIntent) {
     if let Ok(domain) = from_ffi_intent(intent) {
         if let Ok(mut slot) = LAST_DIRECTOR_INTENT.lock() {
@@ -481,8 +515,19 @@ impl From<DomainBlockingState> for BlockingState {
 mod tests {
     use super::*;
 
+    #[cfg(test)]
+    fn reset_director_api_for_tests() {
+        if let Ok(mut slot) = DIRECTOR_API.lock() {
+            *slot = None;
+        }
+        if let Ok(mut label) = LAST_SNAPSHOT_SOURCE.lock() {
+            label.clear();
+        }
+    }
+
     #[test]
     fn current_director_snapshot_matches_fixture_version() {
+        reset_director_api_for_tests();
         let snapshot = quorum_current_director_snapshot();
         assert_eq!(snapshot.version, 1844);
         assert_eq!(
@@ -493,6 +538,21 @@ mod tests {
                 .map(|now| now.objective.as_str()),
             Some("Evaluate Vendor X's security claims")
         );
+        assert_eq!(quorum_director_snapshot_source(), "fixture");
+    }
+
+    #[test]
+    fn configure_director_api_then_snapshot_without_panic() {
+        reset_director_api_for_tests();
+        quorum_configure_director_api("http://127.0.0.1:5161/quorum-sense".into(), "dev".into());
+        let snapshot = quorum_current_director_snapshot();
+        assert_eq!(snapshot.version, 1844);
+        let source = quorum_director_snapshot_source();
+        assert!(
+            source.starts_with("fixture_fallback:") || source == "live",
+            "unexpected source: {source}"
+        );
+        reset_director_api_for_tests();
     }
 
     #[test]

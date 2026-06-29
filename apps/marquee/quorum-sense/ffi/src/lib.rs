@@ -11,7 +11,8 @@ pub use director::{
     FfiDirectorFrame, FfiDirectorIntent, FfiDirectorPrompt, FfiDirectorSnapshot, FfiGatePrompt,
     FfiJudgmentPrompt, FfiNowTask, FfiPresenceHint, FfiPrimaryAction, FfiReviewPrompt,
     FfiSecondaryAction, FfiWaitingFor, GateVerdict, ReviewStance, WaitingForKind,
-    quorum_current_director_snapshot, quorum_submit_director_intent,
+    quorum_configure_director_api, quorum_current_director_snapshot,
+    quorum_director_snapshot_source, quorum_submit_director_intent,
 };
 
 use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};

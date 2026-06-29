@@ -56,6 +56,13 @@ struct QuorumMobileApp: App {
             release: "quorum@\(shortVersion)",
             debug: rustDebug
         )
+
+        #if DEBUG
+        let quorumBase = ProcessInfo.processInfo.environment["QUORUM_BASE_URL"]
+            ?? "http://127.0.0.1:5161/quorum-sense"
+        let quorumBearer = ProcessInfo.processInfo.environment["QUORUM_BEARER_TOKEN"] ?? "dev"
+        quorumConfigureDirectorApi(baseUrl: quorumBase, bearerToken: quorumBearer)
+        #endif
     }
 
     var body: some Scene {

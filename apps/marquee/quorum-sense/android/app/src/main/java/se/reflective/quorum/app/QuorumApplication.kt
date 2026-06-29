@@ -6,6 +6,7 @@ import io.sentry.SentryEvent
 import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import uniffi.quorum_ffi.initObservability
+import uniffi.quorum_ffi.quorumConfigureDirectorApi
 
 /**
  * Single place both crash clients initialise (QF-2026-06-24-05, ADR 0004):
@@ -39,6 +40,13 @@ class QuorumApplication : Application() {
             release = "quorum@0.1.2",
             debug = debuggable,
         )
+
+        if (debuggable) {
+            val quorumBase = System.getenv("QUORUM_BASE_URL")
+                ?: "http://127.0.0.1:5161/quorum-sense"
+            val quorumBearer = System.getenv("QUORUM_BEARER_TOKEN") ?: "dev"
+            quorumConfigureDirectorApi(quorumBase, quorumBearer)
+        }
     }
 }
 

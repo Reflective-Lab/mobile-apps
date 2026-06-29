@@ -3,6 +3,14 @@
 //! `director-contracts` owns `DirectorFrame`; this module re-exports it and
 //! carries fixture replay wiring only — no parallel frame definition.
 
+pub mod live;
+
+pub use live::{
+    DEFAULT_LOCAL_DEV_BEARER, DEFAULT_LOCAL_QUORUM_BASE_URL, DIRECTOR_SNAPSHOT_PATH,
+    DirectorApiConfig, DirectorSnapshotSource, LiveDirectorError, ResolveDirectorError,
+    director_snapshot_url, fetch_live_director_snapshot, resolve_director_snapshot,
+};
+
 pub use director_contracts::{
     BlockingState, Choice, ContextLevel, DirectorFrame, DirectorIntent, DirectorPrompt,
     DirectorSnapshot, GatePrompt, GateVerdict, JudgmentPrompt, NowTask, PresenceHint,

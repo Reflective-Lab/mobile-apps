@@ -14,6 +14,8 @@ helm-client = { path = "../../../bedrock-platform/helms/crates/helm-client" }
 helm-session-contracts = { path = "../../../bedrock-platform/helms/crates/helm-session-contracts" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+thiserror = "2"
+ureq = { version = "2", default-features = false, features = ["json", "tls"] }
 
 [dev-dependencies]
 proptest = "1"
