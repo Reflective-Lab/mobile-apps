@@ -47,6 +47,10 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         return DirectorBridgeMapping.domainSnapshot(snapshot)
     }
 
+    public func directorSnapshotSource() async -> String {
+        quorumDirectorSnapshotSource()
+    }
+
     public func submitDirectorIntent(_ intent: DirectorIntent) async throws {
         quorumSubmitDirectorIntent(intent: DirectorBridgeMapping.ffiIntent(intent))
     }

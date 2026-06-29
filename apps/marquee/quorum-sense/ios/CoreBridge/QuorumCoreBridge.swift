@@ -7,6 +7,7 @@ import Foundation
 public protocol QuorumCoreBridge: Sendable {
     func workflowId() async -> String
     func currentDirectorSnapshot() async throws -> DirectorSnapshot
+    func directorSnapshotSource() async -> String
     func submitDirectorIntent(_ intent: DirectorIntent) async throws
     func draftFieldSignal(
         inquiryThreadId: String,
@@ -31,6 +32,10 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
 
     public func currentDirectorSnapshot() async throws -> DirectorSnapshot {
         DirectorFixture.quorumDecisionCheckpoint
+    }
+
+    public func directorSnapshotSource() async -> String {
+        "fixture"
     }
 
     public func submitDirectorIntent(_ intent: DirectorIntent) async throws {

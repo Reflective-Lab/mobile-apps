@@ -22,6 +22,7 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
 
     var workflowIdStub = "quorum.field_signal_capture.v1"
     var directorSnapshotStub: Result<DirectorSnapshot, Error> = .success(DirectorFixture.quorumDecisionCheckpoint)
+    var directorSnapshotSourceStub = "fixture"
     var directorIntentStub: Result<Void, Error> = .success(())
     var draftStub: Result<FieldSignalDraft, Error> = .failure(TestError.unstubbed)
     var appendStub: Result<QuorumAppendEvent, Error> = .failure(TestError.unstubbed)
@@ -38,6 +39,10 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
 
     func currentDirectorSnapshot() async throws -> DirectorSnapshot {
         try directorSnapshotStub.get()
+    }
+
+    func directorSnapshotSource() async -> String {
+        directorSnapshotSourceStub
     }
 
     func submitDirectorIntent(_ intent: DirectorIntent) async throws {
