@@ -1,13 +1,17 @@
-name: Checkout helms path dependencies
+name: Checkout monorepo layout for path dependencies
 description: >-
-  mobile-core path-deps to bedrock-platform/helms (director-contracts,
-  helm-client, helm-session-contracts). In CI the sibling tree is absent unless
-  we fetch it here — see crates/mobile-core/Cargo.toml.
+  mobile-core path-deps expect reflective/mobile-apps beside
+  reflective/bedrock-platform/helms. Standalone CI checkouts only fetch
+  mobile-apps; this action restores the sibling layout under GITHUB_WORKSPACE.
 
 runs:
   using: composite
   steps:
     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
+        path: reflective/mobile-apps
+
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
         repository: Reflective-Lab/helms
-        path: ../bedrock-platform/helms
+        path: reflective/bedrock-platform/helms

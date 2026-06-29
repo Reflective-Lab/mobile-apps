@@ -17,9 +17,10 @@ jobs:
     name: Rust Workspace
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install Rust toolchain
@@ -34,8 +35,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
@@ -79,9 +80,10 @@ jobs:
       SENTRY_URL: https://de.sentry.io/
       SENTRY_ORG: reflective-labs-xa
       SENTRY_PROJECT: apple-ios
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install xcodegen + just
@@ -105,8 +107,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-ios-product-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-ios-product-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-ios-product-cargo-
 
@@ -137,9 +139,10 @@ jobs:
     name: iOS Smoke Shell (UniFFI + xcodebuild)
     runs-on: macos-15
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install xcodegen + just
@@ -160,8 +163,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-ios-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-ios-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-ios-cargo-
 
@@ -182,9 +185,10 @@ jobs:
     name: Android Smoke Shell (UniFFI + Gradle)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Set up JDK 17
@@ -222,8 +226,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-android-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-android-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-android-cargo-
 
@@ -233,7 +237,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('templates/native-shells/android/**/*.gradle.kts', 'templates/native-shells/android/gradle/wrapper/*') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('reflective/mobile-apps/templates/native-shells/android/**/*.gradle.kts', 'reflective/mobile-apps/templates/native-shells/android/gradle/wrapper/*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -244,9 +248,10 @@ jobs:
     name: Quorum Android Unit Tests (Kotest)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Set up JDK 17
@@ -284,8 +289,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-android-product-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-android-product-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-android-product-cargo-
 
@@ -295,7 +300,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-product-${{ hashFiles('apps/marquee/quorum-sense/android/**/*.gradle.kts', 'apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
+          key: ${{ runner.os }}-gradle-product-${{ hashFiles('reflective/mobile-apps/apps/marquee/quorum-sense/android/**/*.gradle.kts', 'reflective/mobile-apps/apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-product-
 
@@ -312,9 +317,10 @@ jobs:
     name: Quorum Android Instrumented Tests (Compose + FFI)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Enable KVM
@@ -378,9 +384,10 @@ jobs:
       SENTRY_URL: https://de.sentry.io/
       SENTRY_ORG: reflective-labs-xa
       SENTRY_PROJECT: apple-ios
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Install xcodegen + just
@@ -404,8 +411,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-ios-release-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-ios-release-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-ios-release-cargo-
 
@@ -434,9 +441,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - uses: ./.github/actions/checkout-helms-deps
 
       - name: Set up JDK 17
@@ -474,8 +482,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-android-release-cargo-${{ hashFiles('Cargo.lock') }}
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-android-release-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-android-release-cargo-
 
@@ -485,7 +493,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-release-${{ hashFiles('apps/marquee/quorum-sense/android/**/*.gradle.kts', 'apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
+          key: ${{ runner.os }}-gradle-release-${{ hashFiles('reflective/mobile-apps/apps/marquee/quorum-sense/android/**/*.gradle.kts', 'reflective/mobile-apps/apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-release-
 
@@ -518,8 +526,6 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: ./.github/actions/checkout-helms-deps
-
       - name: Check scaffold contract
         run: bash scripts/check-mobile-scaffold.sh
 
@@ -529,8 +535,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - uses: ./.github/actions/checkout-helms-deps
 
       # Validates every gradle-wrapper.jar in the repo against Gradle's published
       # known-good checksums — a tampered wrapper jar (a known supply-chain vector)

@@ -5,6 +5,22 @@ app := "quorum"
 default:
     @just --list
 
+# Monorepo local dev: mobile-core path-deps use ../../../bedrock-platform/helms
+# (sibling of mobile-apps). In standalone CI, checkout-helms-deps recreates the
+# reflective/{mobile-apps,bedrock-platform/helms} layout instead.
+path-deps:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{justfile_directory()}}"
+    target="$(cd "$root/.." && pwd)/bedrock-platform/helms/crates/director-contracts/Cargo.toml"
+    if [[ -f "$target" ]]; then
+      echo "path-deps OK: $target"
+    else
+      echo "path-deps FAIL: expected helms at $target" >&2
+      echo "  monorepo: clone Reflective-Lab/helms into ../bedrock-platform/helms" >&2
+      exit 1
+    fi
+
 fmt:
     cargo fmt --all
 
