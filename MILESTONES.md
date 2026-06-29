@@ -239,18 +239,26 @@ and root epic `../KB/08-roadmap/2026-06-27-ai-director-ux-epic.md`.
 
 Goal: make offline operation durable and reusable across the portfolio.
 
-- [ ] M4.1 Define Rust `ConsentDecision`.
+- [x] M4.1 Define Rust `ConsentDecision`.
   Acceptance: consent states are explicit typed variants, not booleans or
-  strings.
-- [ ] M4.2 Define Rust `CapturePacket`.
+  strings. Done: `crates/mobile-core/src/consent.rs` with
+  `Accepted` / `EditedAndAccepted` / `Rejected` / `SavedPrivate` / `Expired`;
+  `quorum::append_after_consent` gates queue on `permits_queue()`.
+- [x] M4.2 Define Rust `CapturePacket`.
   Acceptance: packet captures modality, source metadata, draft payload,
-  consent record, idempotency key, and app/workflow version.
-- [ ] M4.3 Define Rust `QueueState`.
+  consent record, idempotency key, and app/workflow version. Done:
+  `crates/mobile-core/src/capture.rs`; Quorum builders in
+  `quorum::capture_packet_from_draft` / `append_from_capture_packet`.
+- [x] M4.3 Define Rust `QueueState`.
   Acceptance: state machine covers draft-local, pending-consent, queued,
-  submitting, admitted, rejected, needs-review, and abandoned.
-- [ ] M4.4 Define allowed queue transitions.
+  submitting, admitted, rejected, needs-review, and abandoned. Done:
+  `crates/mobile-core/src/queue.rs` with `QueueState`, `QueuedCapture`, and
+  `quorum::queue_capture_from_draft`.
+- [x] M4.4 Define allowed queue transitions.
   Acceptance: tests reject illegal transitions such as pending-consent →
-  submitting or rejected → admitted without explicit retry/review.
+  submitting or rejected → admitted without explicit retry/review. Done:
+  `queue/transitions.rs` with `allows_transition_to` / `transition_to` and
+  `QueuedCapture::transition_to`.
 - [ ] M4.5 Define local persistence contract.
   Acceptance: Rust exposes stable records; native code can store them without
   learning product internals.

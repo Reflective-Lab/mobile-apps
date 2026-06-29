@@ -1,3 +1,10 @@
+use crate::capture::{
+    AppVersion, CaptureModality, CapturePacket, CapturePacketError, ConsentRecord, DraftPayload,
+    IdempotencyKey, SourceMetadata, WorkflowVersion,
+};
+use crate::consent::{ConsentApplyError, ConsentDecision};
+use crate::queue::{QueuedCapture, QueuedCaptureError};
+
 pub mod director_presenter;
 
 pub const FIELD_SIGNAL_CAPTURE_WORKFLOW_ID: &str = "quorum.field_signal_capture.v1";
@@ -195,13 +202,101 @@ pub fn draft_field_signal(
     }
 }
 
+/// Queue a draft after explicit consent. Only `Accepted` and
+/// `EditedAndAccepted` may enter the offline queue.
+pub fn append_after_consent(
+    draft: &QuorumSignalDraft,
+    decision: ConsentDecision,
+) -> Result<QuorumAppendEvent, ConsentApplyError> {
+    if !decision.permits_queue() {
+        return Err(ConsentApplyError::DoesNotPermitQueue(decision));
+    }
+    Ok(queue_consented_event(draft))
+}
+
+/// Shorthand for [`append_after_consent`] with [`ConsentDecision::Accepted`].
 pub fn append_consented_signal(draft: &QuorumSignalDraft) -> QuorumAppendEvent {
+    queue_consented_event(draft)
+}
+
+fn queue_consented_event(draft: &QuorumSignalDraft) -> QuorumAppendEvent {
     QuorumAppendEvent {
         workflow_id: draft.workflow_id.clone(),
         event_type: AppendEventType::SignalDraftConsented,
         draft_id: draft.draft_id.clone(),
         inquiry_thread_id: draft.inquiry_thread_id.clone(),
         sync_state: SyncState::QueuedForSync,
+    }
+}
+
+/// Build a portfolio [`CapturePacket`] from a Quorum field-signal draft.
+pub fn capture_packet_from_draft(
+    draft: &QuorumSignalDraft,
+    app: AppVersion,
+    source: SourceMetadata,
+    consent: Option<ConsentRecord>,
+) -> Result<CapturePacket, CapturePacketError> {
+    let workflow = WorkflowVersion::parse(draft.workflow_id.as_str())
+        .ok_or(CapturePacketError::InvalidWorkflowVersion)?;
+
+    Ok(CapturePacket {
+        app,
+        workflow,
+        idempotency_key: IdempotencyKey::for_draft(draft.draft_id.as_str()),
+        modality: capture_modality_from_signal(draft.modality),
+        source: SourceMetadata {
+            inquiry_thread_id: Some(draft.inquiry_thread_id.as_str().to_owned()),
+            ..source
+        },
+        payload: DraftPayload {
+            draft_id: draft.draft_id.as_str().to_owned(),
+            raw_capture: draft.raw_capture.clone(),
+            summary: draft.summary.clone(),
+            latent_need: draft.latent_need.clone(),
+            contradiction: draft.contradiction.clone(),
+            confidence: draft.confidence.value(),
+        },
+        consent,
+    })
+}
+
+/// Queue from a validated capture packet (consent + workflow must match Quorum).
+pub fn append_from_capture_packet(
+    packet: &CapturePacket,
+) -> Result<QuorumAppendEvent, CapturePacketError> {
+    packet.ready_for_queue()?;
+
+    if packet.workflow.workflow_id != FIELD_SIGNAL_CAPTURE_WORKFLOW_ID {
+        return Err(CapturePacketError::InvalidWorkflowVersion);
+    }
+
+    Ok(QuorumAppendEvent {
+        workflow_id: WorkflowId::new(packet.workflow.workflow_id.clone()),
+        event_type: AppendEventType::SignalDraftConsented,
+        draft_id: DraftId::new(packet.payload.draft_id.clone()),
+        inquiry_thread_id: InquiryThreadId::new(
+            packet.source.inquiry_thread_id.clone().unwrap_or_default(),
+        ),
+        sync_state: SyncState::QueuedForSync,
+    })
+}
+
+/// Build and enqueue a [`QueuedCapture`] after explicit consent.
+pub fn queue_capture_from_draft(
+    draft: &QuorumSignalDraft,
+    app: AppVersion,
+    source: SourceMetadata,
+    consent: ConsentRecord,
+) -> Result<QueuedCapture, QueuedCaptureError> {
+    let packet = capture_packet_from_draft(draft, app, source, Some(consent))?;
+    QueuedCapture::at_review(packet).enqueue()
+}
+
+fn capture_modality_from_signal(modality: SignalModality) -> CaptureModality {
+    match modality {
+        SignalModality::Text => CaptureModality::Text,
+        SignalModality::VoiceTranscript => CaptureModality::VoiceTranscript,
+        SignalModality::ImageOcrText => CaptureModality::ImageOcrText,
     }
 }
 
@@ -217,6 +312,7 @@ fn summarize_for_fixture(raw_capture: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::capture::CapturePlatform;
 
     #[test]
     fn fixture_declares_first_quorum_workflow() {
@@ -241,6 +337,23 @@ mod tests {
         let event = append_consented_signal(&draft);
         assert_eq!(event.event_type, AppendEventType::SignalDraftConsented);
         assert_eq!(event.sync_state, SyncState::QueuedForSync);
+
+        let edited = append_after_consent(&draft, ConsentDecision::EditedAndAccepted)
+            .expect("edited accept queues");
+        assert_eq!(edited.draft_id, draft.draft_id);
+
+        assert!(matches!(
+            append_after_consent(&draft, ConsentDecision::Rejected),
+            Err(ConsentApplyError::DoesNotPermitQueue(
+                ConsentDecision::Rejected
+            ))
+        ));
+        assert!(matches!(
+            append_after_consent(&draft, ConsentDecision::SavedPrivate),
+            Err(ConsentApplyError::DoesNotPermitQueue(
+                ConsentDecision::SavedPrivate
+            ))
+        ));
     }
 
     #[test]
@@ -250,6 +363,53 @@ mod tests {
         assert!(Confidence::new(-0.1).is_none());
         assert!(Confidence::new(1.1).is_none());
         assert!(Confidence::new(f32::NAN).is_none());
+    }
+
+    #[test]
+    fn capture_packet_carries_fixture_fields() {
+        let draft = draft_field_signal(
+            "inq_mobile_launch_risks",
+            SignalModality::VoiceTranscript,
+            "The sales team says rollout is fine, but support is seeing confusion in every pilot.",
+        );
+        let source = SourceMetadata {
+            captured_at: Some("2026-06-06T12:00:00Z".into()),
+            participant_session_id: Some("session_field_001".into()),
+            inquiry_thread_id: None,
+            offline: true,
+            platform: Some(CapturePlatform::Ios),
+        };
+        let consent = ConsentRecord {
+            decision: ConsentDecision::Accepted,
+            recorded_at: "2026-06-06T12:01:00Z".into(),
+        };
+
+        let packet = capture_packet_from_draft(
+            &draft,
+            AppVersion {
+                app_slug: "quorum-sense".into(),
+                client_version: Some("0.1.2".into()),
+            },
+            source,
+            Some(consent),
+        )
+        .expect("packet builds");
+
+        assert_eq!(packet.app.app_slug, "quorum-sense");
+        assert_eq!(packet.workflow.version, 1);
+        assert_eq!(
+            packet.idempotency_key.as_str(),
+            "idempotency:draft:inq_mobile_launch_risks:field-signal-v1"
+        );
+        assert_eq!(packet.modality, CaptureModality::VoiceTranscript);
+        assert_eq!(
+            packet.source.inquiry_thread_id.as_deref(),
+            Some("inq_mobile_launch_risks")
+        );
+        assert_eq!(packet.payload.confidence, 0.67);
+
+        let event = append_from_capture_packet(&packet).expect("packet queues");
+        assert_eq!(event.draft_id.as_str(), draft.draft_id.as_str());
     }
 
     #[test]
