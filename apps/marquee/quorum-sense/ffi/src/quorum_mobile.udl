@@ -19,6 +19,9 @@ interface QuorumError {
     ConfidenceOutOfRange(f32 value);
     UnsupportedPlatform(string value);
     UnsupportedTask(string value);
+    InvalidPersistedRecord(string detail);
+    IllegalQueueTransition(string from, string to);
+    ConsentDoesNotPermitQueue(string decision);
 };
 
 // Wire enums: the contract carries domain enums, not strings, so neither Swift
@@ -41,6 +44,25 @@ enum AppendEventType {
 
 enum SyncState {
     "QueuedForSync",
+};
+
+enum ConsentDecision {
+    "Accepted",
+    "EditedAndAccepted",
+    "Rejected",
+    "SavedPrivate",
+    "Expired",
+};
+
+enum QueueState {
+    "DraftLocal",
+    "PendingConsent",
+    "Queued",
+    "Submitting",
+    "Admitted",
+    "Rejected",
+    "NeedsReview",
+    "Abandoned",
 };
 
 dictionary FfiAppSummary {
@@ -248,4 +270,27 @@ namespace quorum_ffi {
     string quorum_director_snapshot_source();
 
     void quorum_submit_director_intent(FfiDirectorIntent intent);
+
+    // Offline queue persistence (M4.5 contract, M4.6 native adapter). Rust
+    // validates transitions and record shape; native stores opaque JSON bytes.
+    [Throws=QuorumError]
+    string quorum_build_persisted_queue_record(
+        FfiQuorumSignalDraft draft,
+        ConsentDecision consent_decision,
+        string consent_recorded_at,
+        string updated_at,
+        string? client_version,
+        boolean offline,
+        string capture_platform
+    );
+
+    [Throws=QuorumError]
+    void quorum_validate_persisted_queue_record(string record_json);
+
+    [Throws=QuorumError]
+    string quorum_apply_queue_transition(
+        string record_json,
+        QueueState next_state,
+        string updated_at
+    );
 };

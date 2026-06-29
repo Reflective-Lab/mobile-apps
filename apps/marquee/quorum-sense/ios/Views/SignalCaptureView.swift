@@ -9,6 +9,8 @@ public struct SignalCaptureView: View {
     @State private var rawCapture = "The sales team says rollout is fine, but support is seeing confusion in every pilot."
     @State private var draft: FieldSignalDraft?
     @State private var appendEvent: QuorumAppendEvent?
+    @State private var persistedRecord: PersistedQueueRecordSummary?
+    @State private var durableQueue: [PersistedQueueRecordSummary] = []
     @State private var errorMessage: String?
 
     public init(bridge: any QuorumCoreBridge = PreviewQuorumCoreBridge()) {
@@ -30,6 +32,7 @@ public struct SignalCaptureView: View {
                 Button("Create Draft") {
                     Task {
                         appendEvent = nil
+                        persistedRecord = nil
                         errorMessage = nil
                         do {
                             draft = try await bridge.draftFieldSignal(
@@ -62,8 +65,11 @@ public struct SignalCaptureView: View {
                             errorMessage = nil
                             do {
                                 appendEvent = try await bridge.appendConsentedSignal(draft)
+                                persistedRecord = try await bridge.persistConsentedSignalToQueue(draft)
+                                durableQueue = try await bridge.loadPersistedQueueRecords()
                             } catch {
                                 appendEvent = nil
+                                persistedRecord = nil
                                 errorMessage = String(describing: error)
                             }
                         }
@@ -78,6 +84,28 @@ public struct SignalCaptureView: View {
                 }
             }
 
+            if let persistedRecord {
+                Section("Durable Queue") {
+                    LabeledContent("Record", value: persistedRecord.recordId)
+                    LabeledContent("State", value: persistedRecord.queueState)
+                    LabeledContent("Updated", value: persistedRecord.updatedAt)
+                }
+            }
+
+            if !durableQueue.isEmpty {
+                Section("Reloaded After Launch") {
+                    ForEach(durableQueue) { record in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(record.recordId)
+                                .font(Brand.mono(12))
+                            Text("\(record.queueState) · \(record.updatedAt)")
+                                .font(Brand.sans(13))
+                                .foregroundStyle(Brand.inkMuted)
+                        }
+                    }
+                }
+            }
+
             if let errorMessage {
                 Section("Error") {
                     Text(errorMessage)
@@ -88,6 +116,12 @@ public struct SignalCaptureView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Brand.paper.ignoresSafeArea())
+        .task {
+            do {
+                durableQueue = try await bridge.loadPersistedQueueRecords()
+            } catch {
+                errorMessage = String(describing: error)
+            }
+        }
     }
 }
-

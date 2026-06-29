@@ -9,11 +9,16 @@
 pub mod capture;
 pub mod consent;
 pub mod director;
+pub mod persistence;
 pub mod queue;
 pub mod quorum;
 
 pub use capture::{CapturePacket, CapturePacketError, ConsentRecord as CaptureConsentRecord};
 pub use consent::ConsentDecision;
+pub use persistence::{
+    PERSISTENCE_RECORD_SCHEMA_VERSION, PersistedQueueRecord, PersistenceError,
+    persistence_round_trip,
+};
 pub use queue::{QueueState, QueueTransitionError, QueuedCapture, QueuedCaptureError};
 
 pub use quorum::director_presenter::QuorumDomainPresenter;

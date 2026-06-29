@@ -78,7 +78,7 @@ struct BridgeBoundaryTests {
     /// lib all execute. This is the boundary contract the deep Rust suite pins.
     @Test("FFI adapter round-trips through the real Rust core")
     func ffiRoundTrip() async throws {
-        let bridge = QuorumCoreBridgeFFI()
+        let bridge = try QuorumCoreBridgeFFI()
 
         #expect(await bridge.workflowId() == "quorum.field_signal_capture.v1")
 
@@ -106,7 +106,7 @@ struct BridgeBoundaryTests {
     @Test("every modality round-trips through the real Rust core",
           arguments: SignalModality.allCases)
     func modalityRoundTripsThroughCore(_ modality: SignalModality) async throws {
-        let bridge = QuorumCoreBridgeFFI()
+        let bridge = try QuorumCoreBridgeFFI()
         let draft = try await bridge.draftFieldSignal(
             inquiryThreadId: "inq_modality_roundtrip",
             modality: modality,

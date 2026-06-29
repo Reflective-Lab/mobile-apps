@@ -5,6 +5,7 @@ public struct DirectorNowView: View {
     private let bridge: any QuorumCoreBridge
 
     @State private var snapshot: DirectorSnapshot?
+    @State private var snapshotSource: String = "…"
     @State private var statusMessage: String?
     @State private var errorMessage: String?
 
@@ -16,9 +17,15 @@ public struct DirectorNowView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let snapshot {
-                    Text("Snapshot \(snapshot.version)")
-                        .font(Brand.monoMedium(11))
-                        .foregroundStyle(Brand.inkMuted)
+                    HStack {
+                        Text("Snapshot \(snapshot.version)")
+                            .font(Brand.monoMedium(11))
+                            .foregroundStyle(Brand.inkMuted)
+                        Spacer()
+                        Text(snapshotSource)
+                            .font(Brand.monoMedium(11))
+                            .foregroundStyle(Brand.accentDark)
+                    }
 
                     if let subtitle = snapshot.frame.subtitle {
                         Text(subtitle)
@@ -75,7 +82,18 @@ public struct DirectorNowView: View {
         .scrollContentBackground(.hidden)
         .background(Brand.paper.ignoresSafeArea())
         .task {
+            await refreshLoop()
+        }
+    }
+
+    private func refreshLoop() async {
+        while !Task.isCancelled {
             await loadSnapshot()
+            #if DEBUG
+            try? await Task.sleep(for: .seconds(2))
+            #else
+            break
+            #endif
         }
     }
 
@@ -109,9 +127,11 @@ public struct DirectorNowView: View {
     private func loadSnapshot() async {
         do {
             snapshot = try await bridge.currentDirectorSnapshot()
+            snapshotSource = await bridge.directorSnapshotSource()
             errorMessage = nil
         } catch {
             snapshot = nil
+            snapshotSource = "error"
             errorMessage = String(describing: error)
         }
     }

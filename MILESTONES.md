@@ -259,11 +259,17 @@ Goal: make offline operation durable and reusable across the portfolio.
   submitting or rejected → admitted without explicit retry/review. Done:
   `queue/transitions.rs` with `allows_transition_to` / `transition_to` and
   `QueuedCapture::transition_to`.
-- [ ] M4.5 Define local persistence contract.
+- [x] M4.5 Define local persistence contract.
   Acceptance: Rust exposes stable records; native code can store them without
-  learning product internals.
-- [ ] M4.6 Implement iOS durable queue adapter.
-  Acceptance: queued packets survive app termination and relaunch.
+  learning product internals. Done: `persistence.rs` with versioned
+  `PersistedQueueRecord` JSON encode/decode and `persistence_round_trip`.
+  Durability engine: native (ADR 0005); JSON is record encoding only.
+- [x] M4.6 Implement iOS durable queue adapter.
+  Acceptance: queued packets survive app termination and relaunch. Store
+  `PersistedQueueRecord::to_json()` by `record_id`; reload via `from_json`;
+  call Rust for transitions before write (ADR 0005). Done: UniFFI persistence
+  helpers, `FileQueueStore` + `QuorumQueuePersistence`, bridge wiring, and
+  relaunch tests in `QueuePersistenceTests`.
 - [ ] M4.7 Add BGTaskScheduler submission hook.
   Acceptance: queued packets can be retried in background when iOS allows it.
 - [ ] M4.8 Define HTTP submission client boundary.

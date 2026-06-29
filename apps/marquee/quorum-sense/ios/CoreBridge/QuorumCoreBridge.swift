@@ -7,6 +7,7 @@ import Foundation
 public protocol QuorumCoreBridge: Sendable {
     func workflowId() async -> String
     func currentDirectorSnapshot() async throws -> DirectorSnapshot
+    func directorSnapshotSource() async -> String
     func submitDirectorIntent(_ intent: DirectorIntent) async throws
     func draftFieldSignal(
         inquiryThreadId: String,
@@ -14,9 +15,15 @@ public protocol QuorumCoreBridge: Sendable {
         rawCapture: String
     ) async throws -> FieldSignalDraft
     func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent
+    /// Build a Rust-validated record and persist opaque JSON (M4.6).
+    func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary
+    /// Reload durable queue records, validating each blob through Rust.
+    func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary]
 }
 
 public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
+    private let queueStore = PreviewQueueStore()
+
     public init() {}
 
     public func workflowId() async -> String {
@@ -25,6 +32,10 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
 
     public func currentDirectorSnapshot() async throws -> DirectorSnapshot {
         DirectorFixture.quorumDecisionCheckpoint
+    }
+
+    public func directorSnapshotSource() async -> String {
+        "fixture"
     }
 
     public func submitDirectorIntent(_ intent: DirectorIntent) async throws {
@@ -60,5 +71,32 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
             inquiryThreadId: draft.inquiryThreadId,
             syncState: .queuedForSync
         )
+    }
+
+    public func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
+        let summary = PersistedQueueRecordSummary(
+            recordId: draft.draftId,
+            queueState: "queued",
+            updatedAt: QueueTimestamp.nowISO8601()
+        )
+        await queueStore.save(summary)
+        return summary
+    }
+
+    public func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary] {
+        await queueStore.all()
+    }
+}
+
+private actor PreviewQueueStore {
+    private var records: [PersistedQueueRecordSummary] = []
+
+    func save(_ summary: PersistedQueueRecordSummary) {
+        records.removeAll { $0.recordId == summary.recordId }
+        records.append(summary)
+    }
+
+    func all() -> [PersistedQueueRecordSummary] {
+        records.sorted { $0.recordId < $1.recordId }
     }
 }

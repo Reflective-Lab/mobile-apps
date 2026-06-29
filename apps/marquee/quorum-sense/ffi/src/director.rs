@@ -542,6 +542,17 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires local quorum-server on :5161 (just run-local)"]
+    fn debug_defaults_resolve_live_snapshot() {
+        reset_director_api_for_tests();
+        quorum_configure_director_api("http://127.0.0.1:5161/quorum-sense".into(), "dev".into());
+        let snapshot = quorum_current_director_snapshot();
+        assert_eq!(snapshot.version, 1844);
+        assert_eq!(quorum_director_snapshot_source(), "live");
+        reset_director_api_for_tests();
+    }
+
+    #[test]
     fn configure_director_api_then_snapshot_without_panic() {
         reset_director_api_for_tests();
         quorum_configure_director_api("http://127.0.0.1:5161/quorum-sense".into(), "dev".into());

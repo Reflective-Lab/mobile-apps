@@ -22,9 +22,15 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
 
     var workflowIdStub = "quorum.field_signal_capture.v1"
     var directorSnapshotStub: Result<DirectorSnapshot, Error> = .success(DirectorFixture.quorumDecisionCheckpoint)
+    var directorSnapshotSourceStub = "fixture"
     var directorIntentStub: Result<Void, Error> = .success(())
     var draftStub: Result<FieldSignalDraft, Error> = .failure(TestError.unstubbed)
     var appendStub: Result<QuorumAppendEvent, Error> = .failure(TestError.unstubbed)
+    var persistStub: Result<PersistedQueueRecordSummary, Error> = .failure(TestError.unstubbed)
+    var loadPersistedStub: Result<[PersistedQueueRecordSummary], Error> = .success([])
+
+    private(set) var persistCalls: [FieldSignalDraft] = []
+    private(set) var loadPersistedCallCount = 0
 
     func workflowId() async -> String {
         workflowIdCallCount += 1
@@ -33,6 +39,10 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
 
     func currentDirectorSnapshot() async throws -> DirectorSnapshot {
         try directorSnapshotStub.get()
+    }
+
+    func directorSnapshotSource() async -> String {
+        directorSnapshotSourceStub
     }
 
     func submitDirectorIntent(_ intent: DirectorIntent) async throws {
@@ -52,6 +62,16 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
     func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent {
         appendCalls.append(draft)
         return try appendStub.get()
+    }
+
+    func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
+        persistCalls.append(draft)
+        return try persistStub.get()
+    }
+
+    func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary] {
+        loadPersistedCallCount += 1
+        return try loadPersistedStub.get()
     }
 }
 
