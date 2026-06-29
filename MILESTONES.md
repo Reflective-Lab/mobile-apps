@@ -228,6 +228,12 @@ and root epic `../KB/08-roadmap/2026-06-27-ai-director-ux-epic.md`.
 - [x] M3A.11 Draft Android Compose parity screen.
   Acceptance: Android renders the same fixture as a Compose Now screen with
   semantic parity, not necessarily pixel parity.
+- [x] M3A.12 Wire live Director snapshot fetch against Quorum HTTP.
+  Acceptance: `quorum_configure_director_api` + `GET /api/director/snapshot`
+  resolve through `mobile-core` using canonical `DirectorSnapshot`; fixture
+  fallback when the route is absent or unreachable; intent submit stays local
+  until Plan 2 session push; DEBUG builds default to
+  `http://127.0.0.1:5161/quorum-sense` with Bearer `dev`.
 
 ## M4 — Shared Consent, Offline Queue, And Sync Core
 
