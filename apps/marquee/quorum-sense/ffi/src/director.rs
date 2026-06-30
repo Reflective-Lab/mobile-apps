@@ -10,7 +10,8 @@ use reflective_mobile_core::director::{
     PrimaryAction as DomainPrimaryAction, ReviewStance as DomainReviewStance,
     SecondaryAction as DomainSecondaryAction, WaitingFor as DomainWaitingFor,
     gate_condition_wire_label, quorum_director_fixture_snapshot, resolve_director_snapshot,
-    start_director_sse_listener, stop_director_sse_listener, wait_director_snapshot_version,
+    start_director_sse_listener, stop_director_sse_listener, submit_director_intent,
+    apply_local_director_intent, wait_director_snapshot_version,
 };
 use std::sync::Mutex;
 use std::time::Duration;
@@ -224,9 +225,16 @@ pub fn quorum_wait_director_update(since_version: u64, timeout_ms: u32) -> bool 
 
 /// Accepts a typed director intent from Swift/Kotlin.
 pub fn quorum_submit_director_intent(intent: FfiDirectorIntent) {
-    if let Ok(domain) = from_ffi_intent(intent) {
-        if let Ok(mut slot) = LAST_DIRECTOR_INTENT.lock() {
-            *slot = Some(domain);
+    let Ok(domain) = from_ffi_intent(intent) else {
+        return;
+    };
+    if let Ok(mut slot) = LAST_DIRECTOR_INTENT.lock() {
+        *slot = Some(domain.clone());
+    }
+    apply_local_director_intent(&domain);
+    if let Ok(guard) = DIRECTOR_API.lock() {
+        if let Some(config) = guard.as_ref() {
+            let _ = submit_director_intent(config, &domain);
         }
     }
 }

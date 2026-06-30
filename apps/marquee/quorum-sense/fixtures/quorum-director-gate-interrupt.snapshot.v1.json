@@ -1,0 +1,50 @@
+{
+  "version": 1901,
+  "frame": {
+    "frame_id": "director-frame:session:procurement-security-review:1901",
+    "title": "Cannot continue",
+    "subtitle": null,
+    "now": {
+      "objective": "Legal approval required before the formation can claim success",
+      "needed_from_user": "Approve revised liability wording",
+      "estimated_minutes": null
+    },
+    "waiting_for": {
+      "kind": "participants",
+      "actor_labels": ["Legal"]
+    },
+    "primary": {
+      "label": "Approve",
+      "intent": {
+        "kind": "respond_gate",
+        "gate_id": "gate:procurement-security-approval",
+        "verdict": "approve"
+      }
+    },
+    "secondary": [
+      {
+        "label": "Reject",
+        "intent": {
+          "kind": "respond_gate",
+          "gate_id": "gate:procurement-security-approval",
+          "verdict": "reject"
+        }
+      }
+    ],
+    "prompt": {
+      "kind": "gate",
+      "gate_id": "gate:procurement-security-approval",
+      "reason": "Legal approval required before the formation can claim success.",
+      "consequence": "The procurement formation cannot advance until this gate is resolved.",
+      "deadline_ms": 1735689600000
+    },
+    "presence": [
+      {
+        "actor_label": "Legal",
+        "status": "waiting_on_you"
+      }
+    ],
+    "context_trail": ["task", "session"],
+    "blocking": "blocks_formation"
+  }
+}

@@ -8,6 +8,7 @@ public struct DirectorNowView: View {
     @State private var snapshotSource: String = "…"
     @State private var statusMessage: String?
     @State private var errorMessage: String?
+    @State private var gateInterrupt: GatePrompt?
 
     public init(bridge: any QuorumCoreBridge = PreviewQuorumCoreBridge()) {
         self.bridge = bridge
@@ -83,6 +84,22 @@ public struct DirectorNowView: View {
         .background(Brand.paper.ignoresSafeArea())
         .task {
             await refreshLoop()
+        }
+        .fullScreenCover(item: $gateInterrupt) { gate in
+            if let snapshot {
+                GateInterruptView(
+                    snapshot: snapshot,
+                    gate: gate,
+                    onIntent: submit,
+                    onDismiss: { gateInterrupt = nil }
+                )
+            }
+        }
+        .onChange(of: snapshot?.frame.prompt) { _, prompt in
+            if case .gate(let gate) = prompt,
+               snapshot?.frame.blocking == .blocksFormation {
+                gateInterrupt = gate
+            }
         }
     }
 

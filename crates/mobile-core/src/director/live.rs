@@ -7,6 +7,7 @@
 
 use super::{DirectorSnapshot, quorum_director_fixture_snapshot};
 use crate::quorum::director_presenter::QuorumDomainPresenter;
+use director_contracts::{DirectorIntent, GateVerdict};
 use helm_client::ClientHelm;
 use helm_session_contracts::gate::GatedDecision;
 use helm_session_contracts::push::SessionPush;
@@ -28,6 +29,9 @@ pub const DEFAULT_DIRECTOR_SESSION_ID: &str = "procurement-security-review";
 
 /// Canonical director snapshot route (server-side Plan 2).
 pub const DIRECTOR_SNAPSHOT_PATH: &str = "/api/director/snapshot";
+
+/// LOCAL_DEV intent submit route (Track B).
+pub const DIRECTOR_INTENT_PATH: &str = "/api/director/dev/intent";
 
 const SESSION_PUSH: &str = "session.push";
 const SESSION_GATE_OPENED: &str = "session.gate.opened";
@@ -181,6 +185,76 @@ pub fn fetch_live_director_snapshot(
         return Err(LiveDirectorError::HttpError { status, body });
     }
     serde_json::from_str(&body).map_err(Into::into)
+}
+
+/// Build the LOCAL_DEV intent POST URL from a configured base.
+#[must_use]
+pub fn director_intent_url(config: &DirectorApiConfig) -> String {
+    let base = config.base_url.trim_end_matches('/');
+    format!("{base}{DIRECTOR_INTENT_PATH}")
+}
+
+/// POST a typed director intent to Quorum (`LOCAL_DEV` route). Requires network access.
+pub fn submit_director_intent(
+    config: &DirectorApiConfig,
+    intent: &DirectorIntent,
+) -> Result<(), LiveDirectorError> {
+    let url = director_intent_url(config);
+    let mut body = serde_json::to_value(intent).map_err(LiveDirectorError::Json)?;
+    if let Some(obj) = body.as_object_mut() {
+        obj.insert(
+            "session_id".to_owned(),
+            serde_json::Value::String(config.session_id.clone()),
+        );
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(10))
+        .build();
+
+    let response = agent
+        .post(&url)
+        .set("Authorization", &format!("Bearer {}", config.bearer_token))
+        .set("Content-Type", "application/json")
+        .send_json(body)?;
+
+    let status = response.status();
+    if status != 200 {
+        let body = response
+            .into_string()
+            .map_err(LiveDirectorError::BodyRead)?;
+        return Err(LiveDirectorError::HttpError { status, body });
+    }
+    Ok(())
+}
+
+/// Apply a director intent to the in-memory Client Helm mirror (immediate UI feedback).
+pub fn apply_local_director_intent(intent: &DirectorIntent) {
+    let state = ensure_live_session();
+    let Ok(mut guard) = state.inner.lock() else {
+        return;
+    };
+
+    match intent {
+        DirectorIntent::RespondGate { gate_id, verdict } => {
+            let response = serde_json::json!({
+                "verdict": match verdict {
+                    GateVerdict::Approve => "approve",
+                    GateVerdict::Reject => "reject",
+                }
+            });
+            guard.helm.respond_to_gate(gate_id, response);
+        }
+        _ => {}
+    }
+
+    let presenter = QuorumDomainPresenter;
+    let version = guard.version.saturating_add(1);
+    let snapshot = guard.helm.director_snapshot(version, &presenter);
+    guard.version = version;
+    guard.snapshot = Some(snapshot);
+    drop(guard);
+    state.updated.notify_all();
 }
 
 /// Start (or restart) the background Client Helm SSE listener for the given config.

@@ -56,11 +56,13 @@ public struct JudgmentPrompt: Equatable, Sendable {
     public let choices: [Choice]
 }
 
-public struct GatePrompt: Equatable, Sendable {
+public struct GatePrompt: Equatable, Sendable, Identifiable {
     public let gateId: String
     public let reason: String
     public let consequence: String
     public let deadlineMs: UInt64?
+
+    public var id: String { gateId }
 }
 
 public struct ReviewPrompt: Equatable, Sendable {

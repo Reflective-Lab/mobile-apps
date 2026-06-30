@@ -57,12 +57,23 @@ struct QuorumMobileApp: App {
             debug: rustDebug
         )
 
-        #if DEBUG
-        let quorumBase = ProcessInfo.processInfo.environment["QUORUM_BASE_URL"]
-            ?? "http://127.0.0.1:5161/quorum-sense"
-        let quorumBearer = ProcessInfo.processInfo.environment["QUORUM_BEARER_TOKEN"] ?? "dev"
+        Self.configureDirectorApiIfPresent()
+    }
+
+    /// When `QUORUM_BASE_URL` is set (scheme env or Xcode scheme), wire live director + SSE.
+    private static func configureDirectorApiIfPresent() {
+        let env = ProcessInfo.processInfo.environment
+        let quorumBase = env["QUORUM_BASE_URL"]
+            ?? {
+                #if DEBUG
+                return "http://127.0.0.1:5161/quorum-sense"
+                #else
+                return nil
+                #endif
+            }()
+        guard let quorumBase else { return }
+        let quorumBearer = env["QUORUM_BEARER_TOKEN"] ?? "dev"
         quorumConfigureDirectorApi(baseUrl: quorumBase, bearerToken: quorumBearer)
-        #endif
     }
 
     var body: some Scene {
