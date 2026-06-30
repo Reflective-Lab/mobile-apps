@@ -18,7 +18,10 @@ public protocol QuorumCoreBridge: Sendable {
     ) async throws -> FieldSignalDraft
     func appendConsentedSignal(_ draft: FieldSignalDraft) async throws -> QuorumAppendEvent
     /// Build a Rust-validated record and persist opaque JSON (M4.6).
-    func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary
+    func persistConsentedSignalToQueue(
+        _ draft: FieldSignalDraft,
+        consentDecision: ConsentDecision
+    ) async throws -> PersistedQueueRecordSummary
     /// Reload durable queue records, validating each blob through Rust.
     func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary]
 }
@@ -81,7 +84,13 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
         )
     }
 
-    public func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
+    public func persistConsentedSignalToQueue(
+        _ draft: FieldSignalDraft,
+        consentDecision: ConsentDecision = .accepted
+    ) async throws -> PersistedQueueRecordSummary {
+        guard consentDecision.permitsQueue else {
+            throw CoreBridgeError.consentDoesNotPermitQueue(consentDecision)
+        }
         let summary = PersistedQueueRecordSummary(
             recordId: draft.draftId,
             queueState: "queued",

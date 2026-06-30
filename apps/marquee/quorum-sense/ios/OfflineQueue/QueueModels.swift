@@ -60,18 +60,6 @@ extension QueueState {
     }
 }
 
-extension ConsentDecision {
-    public var label: String {
-        switch self {
-        case .accepted: "Accepted"
-        case .editedAndAccepted: "Edited and accepted"
-        case .rejected: "Rejected"
-        case .savedPrivate: "Saved private"
-        case .expired: "Expired"
-        }
-    }
-}
-
 enum QueueTimestamp {
     static func nowISO8601() -> String {
         ISO8601DateFormatter().string(from: Date())

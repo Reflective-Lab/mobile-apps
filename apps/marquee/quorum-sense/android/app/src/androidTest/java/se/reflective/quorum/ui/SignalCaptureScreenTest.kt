@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import org.junit.Rule
 import org.junit.Test
 import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
@@ -22,13 +23,15 @@ class SignalCaptureScreenTest {
             SignalCaptureScreen(bridge = PreviewQuorumCoreBridge())
         }
 
+        composeRule.onNodeWithText("Captured signal").performTextInput(
+            "The sales team says rollout is fine, but support is seeing confusion.",
+        )
         composeRule.onNodeWithText("Create Draft").assertIsDisplayed().performClick()
 
-        val consent = composeRule.onNodeWithText("Consent And Queue")
+        val consent = composeRule.onNodeWithText("Accept and queue")
         consent.assertExists()
         consent.performClick()
 
-        // The Queued Event section renders the human-facing sync label.
         composeRule.onNodeWithText("Queued for sync").assertExists()
     }
 }

@@ -1,9 +1,8 @@
 import Foundation
 
-/// Maps UniFFI director wire DTOs to Swift domain types in `DirectorModels.swift`.
-/// Flat enums (`GateVerdict`, `ContextLevel`, …) are generated in `QuorumFFI.swift`
-/// and cross unchanged; tagged shapes (`WaitingFor`, `DirectorPrompt`, `DirectorIntent`)
-/// are mapped here.
+/// Maps UniFFI director wire enums to Swift domain types in `DirectorModels.swift`.
+/// Tagged shapes (`WaitingFor`, `DirectorPrompt`, `DirectorIntent`) are proper
+/// UniFFI interface enums on the wire (M3A.8); flat enums cross unchanged.
 enum DirectorBridgeMapping {
     static func domainSnapshot(_ ffi: FfiDirectorSnapshot) -> DirectorSnapshot {
         DirectorSnapshot(
@@ -15,55 +14,15 @@ enum DirectorBridgeMapping {
     static func ffiIntent(_ intent: DirectorIntent) -> FfiDirectorIntent {
         switch intent {
         case .openTask(let frameId):
-            FfiDirectorIntent(
-                kind: .openTask,
-                frameId: frameId,
-                choiceId: nil,
-                gateId: nil,
-                gateVerdict: nil,
-                reviewStance: nil,
-                contextLevel: nil
-            )
+            .openTask(frameId: frameId)
         case .submitJudgment(let frameId, let choiceId):
-            FfiDirectorIntent(
-                kind: .submitJudgment,
-                frameId: frameId,
-                choiceId: choiceId,
-                gateId: nil,
-                gateVerdict: nil,
-                reviewStance: nil,
-                contextLevel: nil
-            )
+            .submitJudgment(frameId: frameId, choiceId: choiceId)
         case .respondGate(let gateId, let verdict):
-            FfiDirectorIntent(
-                kind: .respondGate,
-                frameId: nil,
-                choiceId: nil,
-                gateId: gateId,
-                gateVerdict: verdict,
-                reviewStance: nil,
-                contextLevel: nil
-            )
+            .respondGate(gateId: gateId, verdict: verdict)
         case .submitReview(let frameId, let stance):
-            FfiDirectorIntent(
-                kind: .submitReview,
-                frameId: frameId,
-                choiceId: nil,
-                gateId: nil,
-                gateVerdict: nil,
-                reviewStance: stance,
-                contextLevel: nil
-            )
+            .submitReview(frameId: frameId, stance: stance)
         case .requestContext(let level):
-            FfiDirectorIntent(
-                kind: .requestContext,
-                frameId: nil,
-                choiceId: nil,
-                gateId: nil,
-                gateVerdict: nil,
-                reviewStance: nil,
-                contextLevel: level
-            )
+            .requestContext(level: level)
         }
     }
 
@@ -76,7 +35,7 @@ enum DirectorBridgeMapping {
             waitingFor: domainWaitingFor(ffi.waitingFor),
             primary: domainPrimary(ffi.primary),
             secondary: ffi.secondary.map(domainSecondary),
-            prompt: ffi.prompt.flatMap(domainPrompt),
+            prompt: ffi.prompt.map(domainPrompt),
             presence: ffi.presence.map(domainPresence),
             contextTrail: ffi.contextTrail,
             blocking: ffi.blocking
@@ -92,11 +51,11 @@ enum DirectorBridgeMapping {
     }
 
     private static func domainWaitingFor(_ ffi: FfiWaitingFor) -> WaitingFor {
-        switch ffi.kind {
+        switch ffi {
         case .nobody:
             .nobody
-        case .participants:
-            .participants(actorLabels: ffi.actorLabels ?? [])
+        case .participants(let actorLabels):
+            .participants(actorLabels: actorLabels)
         case .server:
             .server
         }
@@ -110,20 +69,18 @@ enum DirectorBridgeMapping {
         SecondaryAction(label: ffi.label, intent: domainIntent(ffi.intent))
     }
 
-    private static func domainPrompt(_ ffi: FfiDirectorPrompt) -> DirectorPrompt? {
-        switch ffi.kind {
-        case .judgment:
-            guard let judgment = ffi.judgment else { return nil }
-            return .judgment(
+    private static func domainPrompt(_ ffi: FfiDirectorPrompt) -> DirectorPrompt {
+        switch ffi {
+        case .judgment(let judgment):
+            .judgment(
                 JudgmentPrompt(
                     question: judgment.question,
                     body: judgment.body,
                     choices: judgment.choices.map(domainChoice)
                 )
             )
-        case .gate:
-            guard let gate = ffi.gate else { return nil }
-            return .gate(
+        case .gate(let gate):
+            .gate(
                 GatePrompt(
                     gateId: gate.gateId,
                     reason: gate.reason,
@@ -131,9 +88,8 @@ enum DirectorBridgeMapping {
                     deadlineMs: gate.deadlineMs
                 )
             )
-        case .review:
-            guard let review = ffi.review else { return nil }
-            return .review(
+        case .review(let review):
+            .review(
                 ReviewPrompt(
                     title: review.title,
                     primaryEvidence: review.primaryEvidence
@@ -151,26 +107,17 @@ enum DirectorBridgeMapping {
     }
 
     private static func domainIntent(_ ffi: FfiDirectorIntent) -> DirectorIntent {
-        switch ffi.kind {
-        case .openTask:
-            .openTask(frameId: ffi.frameId ?? "")
-        case .submitJudgment:
-            .submitJudgment(
-                frameId: ffi.frameId ?? "",
-                choiceId: ffi.choiceId ?? ""
-            )
-        case .respondGate:
-            .respondGate(
-                gateId: ffi.gateId ?? "",
-                verdict: ffi.gateVerdict ?? .reject
-            )
-        case .submitReview:
-            .submitReview(
-                frameId: ffi.frameId ?? "",
-                stance: ffi.reviewStance ?? .needMoreContext
-            )
-        case .requestContext:
-            .requestContext(level: ffi.contextLevel ?? .task)
+        switch ffi {
+        case .openTask(let frameId):
+            .openTask(frameId: frameId)
+        case .submitJudgment(let frameId, let choiceId):
+            .submitJudgment(frameId: frameId, choiceId: choiceId)
+        case .respondGate(let gateId, let verdict):
+            .respondGate(gateId: gateId, verdict: verdict)
+        case .submitReview(let frameId, let stance):
+            .submitReview(frameId: frameId, stance: stance)
+        case .requestContext(let level):
+            .requestContext(level: level)
         }
     }
 }

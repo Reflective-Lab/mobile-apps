@@ -49,7 +49,10 @@ targets:
       - App
       - Views
       - Capture
-      - Queue
+      - Consent
+      - OfflineQueue
+      - Speech
+      - Realtime
       - PlatformAI
       - Resources
       - path: CoreBridge

@@ -343,6 +343,75 @@ jobs:
         working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/android
         run: ./gradlew :app:testDebugUnitTest --no-daemon
 
+  android-product:
+    name: Quorum Android Product App
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: reflective/mobile-apps
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github/actions/checkout-helms-deps
+          sparse-checkout-cone-mode: false
+
+      - uses: ./.github/actions/checkout-helms-deps
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: "platforms;android-35 build-tools;36.0.0 ndk;27.1.12297006"
+
+      - name: Export ANDROID_NDK_HOME
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Use Rust 1.96
+        run: rustup default 1.96.0
+
+      - name: Install Android rustup targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Cache Cargo
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            reflective/mobile-apps/target
+          key: ${{ runner.os }}-android-product-build-cargo-${{ hashFiles('reflective/mobile-apps/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-android-product-build-cargo-
+
+      - name: Cache Gradle
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-product-build-${{ hashFiles('reflective/mobile-apps/apps/marquee/quorum-sense/android/**/*.gradle.kts', 'reflective/mobile-apps/apps/marquee/quorum-sense/android/gradle/wrapper/*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-product-build-
+
+      - name: Build Quorum Android product app
+        run: just quorum-android-build
+
   android-instrumented:
     name: Quorum Android Instrumented Tests (Compose + FFI)
     runs-on: ubuntu-latest

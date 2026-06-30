@@ -17,8 +17,34 @@ public struct CapturedSignalInput: Equatable {
     public let rawCapture: String
 }
 
+public struct NormalizedCaptureResult: Equatable {
+    public let input: CapturedSignalInput
+    /// True when a platform AI path produced structured output; false for typed trim fallback.
+    public let usedPlatformAI: Bool
+}
+
 public struct PlatformSignalExtractor {
     public init() {}
+
+    /// Normalize native capture into bridge input, with typed fallback when platform AI is unavailable (M3.6).
+    public func normalizeCapture(modality: SignalModality, text: String) async -> NormalizedCaptureResult {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *), !trimmed.isEmpty {
+            // Platform AI hook lands here; until then we fall through to deterministic normalization.
+        }
+        #endif
+        let input: CapturedSignalInput
+        switch modality {
+        case .text:
+            input = await normalizeTextCapture(trimmed)
+        case .voiceTranscript:
+            input = await normalizeVoiceTranscript(trimmed)
+        case .imageOcrText:
+            input = await normalizeImageOcrText(trimmed)
+        }
+        return NormalizedCaptureResult(input: input, usedPlatformAI: false)
+    }
 
     public func normalizeTextCapture(_ text: String) async -> CapturedSignalInput {
         CapturedSignalInput(

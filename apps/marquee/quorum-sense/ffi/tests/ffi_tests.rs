@@ -10,10 +10,10 @@
 //! system enforces it at compile time, which is why this file no longer needs to.
 
 use quorum_ffi::{
-    AppendEventType, ConsentState, DirectorIntentKind, FfiDirectorIntent, FfiQuorumSignalDraft,
-    GateVerdict, QuorumError, SignalModality, SyncState, ai_execution_home, mobile_portfolio,
-    quorum_append_consented_signal, quorum_current_director_snapshot, quorum_draft_field_signal,
-    quorum_field_signal_workflow_id, quorum_submit_director_intent,
+    AppendEventType, ConsentState, FfiDirectorIntent, FfiQuorumSignalDraft, GateVerdict, QuorumError,
+    SignalModality, SyncState, ai_execution_home, mobile_portfolio, quorum_append_consented_signal,
+    quorum_current_director_snapshot, quorum_draft_field_signal, quorum_field_signal_workflow_id,
+    quorum_submit_director_intent,
 };
 
 const VALID_MODALITIES: [SignalModality; 3] = [
@@ -69,14 +69,8 @@ fn public_ffi_surface_is_callable() {
     let draft = valid_draft();
     let _ = quorum_append_consented_signal(draft);
     let _ = quorum_current_director_snapshot();
-    quorum_submit_director_intent(FfiDirectorIntent {
-        kind: DirectorIntentKind::RequestContext,
-        frame_id: None,
-        choice_id: None,
-        gate_id: None,
-        gate_verdict: None,
-        review_stance: None,
-        context_level: Some(quorum_ffi::ContextLevel::Session),
+    quorum_submit_director_intent(FfiDirectorIntent::RequestContext {
+        level: quorum_ffi::ContextLevel::Session,
     });
 }
 

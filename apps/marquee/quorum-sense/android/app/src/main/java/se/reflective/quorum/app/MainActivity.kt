@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Production injects the real Rust-backed bridge; previews/tests use
             // PreviewQuorumCoreBridge (the composable default).
-            QuorumMobileApp(bridge = remember { QuorumCoreBridgeFFI() })
+            QuorumMobileApp(bridge = remember { QuorumCoreBridgeFFI(applicationContext) })
         }
     }
 }

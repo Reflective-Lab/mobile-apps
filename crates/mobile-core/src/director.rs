@@ -4,6 +4,7 @@
 //! carries fixture replay wiring only — no parallel frame definition.
 
 pub mod live;
+pub mod replay;
 
 pub use live::{
     DEFAULT_DIRECTOR_SESSION_ID, DEFAULT_LOCAL_DEV_BEARER, DEFAULT_LOCAL_QUORUM_BASE_URL,
@@ -12,6 +13,10 @@ pub use live::{
     director_intent_url, director_session_stream_url, director_snapshot_url,
     fetch_live_director_snapshot, resolve_director_snapshot, start_director_sse_listener,
     stop_director_sse_listener, submit_director_intent, wait_director_snapshot_version,
+};
+
+pub use replay::{
+    MobileDirectorSnapshot, ReplayError, replay_quorum_decision_checkpoint, replay_spine_input_json,
 };
 
 pub use director_contracts::{

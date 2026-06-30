@@ -7,6 +7,16 @@ import Foundation
 /// functions themselves throw when the *core* rejects input.
 public enum CoreBridgeError: Error {
     case confidenceOutOfRange(Float)
+    case consentDoesNotPermitQueue(ConsentDecision)
+}
+
+extension ConsentDecision {
+    var permitsQueue: Bool {
+        switch self {
+        case .accepted, .editedAndAccepted: true
+        case .rejected, .savedPrivate, .expired: false
+        }
+    }
 }
 
 /// Production `QuorumCoreBridge` backed by the Rust core through UniFFI.
@@ -77,8 +87,11 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         return Self.domainEvent(event)
     }
 
-    public func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
-        try await queuePersistence.persistConsentedSignal(draft)
+    public func persistConsentedSignalToQueue(
+        _ draft: FieldSignalDraft,
+        consentDecision: ConsentDecision = .accepted
+    ) async throws -> PersistedQueueRecordSummary {
+        try await queuePersistence.persistConsentedSignal(draft, consentDecision: consentDecision)
     }
 
     public func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary] {

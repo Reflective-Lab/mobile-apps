@@ -50,33 +50,27 @@ pub enum BlockingState {
     BlocksSession,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum WaitingForKind {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FfiWaitingFor {
     Nobody,
-    Participants,
+    Participants { actor_labels: Vec<String> },
     Server,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DirectorPromptKind {
-    Judgment,
-    Gate,
-    Review,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DirectorIntentKind {
-    OpenTask,
-    SubmitJudgment,
-    RespondGate,
-    SubmitReview,
-    RequestContext,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FfiDirectorPrompt {
+    Judgment { judgment: FfiJudgmentPrompt },
+    Gate { gate: FfiGatePrompt },
+    Review { review: FfiReviewPrompt },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FfiWaitingFor {
-    pub kind: WaitingForKind,
-    pub actor_labels: Option<Vec<String>>,
+pub enum FfiDirectorIntent {
+    OpenTask { frame_id: String },
+    SubmitJudgment { frame_id: String, choice_id: String },
+    RespondGate { gate_id: String, verdict: GateVerdict },
+    SubmitReview { frame_id: String, stance: ReviewStance },
+    RequestContext { level: ContextLevel },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -112,25 +106,6 @@ pub struct FfiGatePrompt {
 pub struct FfiReviewPrompt {
     pub title: String,
     pub primary_evidence: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FfiDirectorIntent {
-    pub kind: DirectorIntentKind,
-    pub frame_id: Option<String>,
-    pub choice_id: Option<String>,
-    pub gate_id: Option<String>,
-    pub gate_verdict: Option<GateVerdict>,
-    pub review_stance: Option<ReviewStance>,
-    pub context_level: Option<ContextLevel>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FfiDirectorPrompt {
-    pub kind: DirectorPromptKind,
-    pub judgment: Option<FfiJudgmentPrompt>,
-    pub gate: Option<FfiGatePrompt>,
-    pub review: Option<FfiReviewPrompt>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -282,18 +257,11 @@ fn to_ffi_now(now: &DomainNowTask) -> FfiNowTask {
 
 fn to_ffi_waiting(waiting: &DomainWaitingFor) -> FfiWaitingFor {
     match waiting {
-        DomainWaitingFor::Nobody => FfiWaitingFor {
-            kind: WaitingForKind::Nobody,
-            actor_labels: None,
+        DomainWaitingFor::Nobody => FfiWaitingFor::Nobody,
+        DomainWaitingFor::Participants { actor_labels } => FfiWaitingFor::Participants {
+            actor_labels: actor_labels.clone(),
         },
-        DomainWaitingFor::Participants { actor_labels } => FfiWaitingFor {
-            kind: WaitingForKind::Participants,
-            actor_labels: Some(actor_labels.clone()),
-        },
-        DomainWaitingFor::Server => FfiWaitingFor {
-            kind: WaitingForKind::Server,
-            actor_labels: None,
-        },
+        DomainWaitingFor::Server => FfiWaitingFor::Server,
     }
 }
 
@@ -313,36 +281,27 @@ fn to_ffi_secondary(action: &DomainSecondaryAction) -> FfiSecondaryAction {
 
 fn to_ffi_prompt(prompt: &DomainDirectorPrompt) -> FfiDirectorPrompt {
     match prompt {
-        DomainDirectorPrompt::Judgment(j) => FfiDirectorPrompt {
-            kind: DirectorPromptKind::Judgment,
-            judgment: Some(FfiJudgmentPrompt {
+        DomainDirectorPrompt::Judgment(j) => FfiDirectorPrompt::Judgment {
+            judgment: FfiJudgmentPrompt {
                 question: j.question.clone(),
                 body: j.body.clone(),
                 choices: j.choices.iter().map(to_ffi_choice).collect(),
-            }),
-            gate: None,
-            review: None,
+            },
         },
-        DomainDirectorPrompt::Gate(g) => FfiDirectorPrompt {
-            kind: DirectorPromptKind::Gate,
-            judgment: None,
-            gate: Some(FfiGatePrompt {
+        DomainDirectorPrompt::Gate(g) => FfiDirectorPrompt::Gate {
+            gate: FfiGatePrompt {
                 gate_id: g.gate_id.as_str().to_owned(),
                 reason: g.reason.clone(),
                 consequence: g.consequence.clone(),
                 deadline_ms: g.deadline_ms,
                 condition_kind: gate_condition_wire_label(&g.condition).to_owned(),
-            }),
-            review: None,
+            },
         },
-        DomainDirectorPrompt::Review(r) => FfiDirectorPrompt {
-            kind: DirectorPromptKind::Review,
-            judgment: None,
-            gate: None,
-            review: Some(FfiReviewPrompt {
+        DomainDirectorPrompt::Review(r) => FfiDirectorPrompt::Review {
+            review: FfiReviewPrompt {
                 title: r.title.clone(),
                 primary_evidence: r.primary_evidence.clone(),
-            }),
+            },
         },
     }
 }
@@ -363,93 +322,50 @@ fn to_ffi_presence(hint: &DomainPresenceHint) -> FfiPresenceHint {
 
 fn to_ffi_intent(intent: &DomainDirectorIntent) -> FfiDirectorIntent {
     match intent {
-        DomainDirectorIntent::OpenTask { frame_id } => FfiDirectorIntent {
-            kind: DirectorIntentKind::OpenTask,
-            frame_id: Some(frame_id.clone()),
-            choice_id: None,
-            gate_id: None,
-            gate_verdict: None,
-            review_stance: None,
-            context_level: None,
+        DomainDirectorIntent::OpenTask { frame_id } => FfiDirectorIntent::OpenTask {
+            frame_id: frame_id.clone(),
         },
         DomainDirectorIntent::SubmitJudgment {
             frame_id,
             choice_id,
-        } => FfiDirectorIntent {
-            kind: DirectorIntentKind::SubmitJudgment,
-            frame_id: Some(frame_id.clone()),
-            choice_id: Some(choice_id.clone()),
-            gate_id: None,
-            gate_verdict: None,
-            review_stance: None,
-            context_level: None,
+        } => FfiDirectorIntent::SubmitJudgment {
+            frame_id: frame_id.clone(),
+            choice_id: choice_id.clone(),
         },
-        DomainDirectorIntent::RespondGate { gate_id, verdict } => FfiDirectorIntent {
-            kind: DirectorIntentKind::RespondGate,
-            frame_id: None,
-            choice_id: None,
-            gate_id: Some(gate_id.as_str().to_owned()),
-            gate_verdict: Some((*verdict).into()),
-            review_stance: None,
-            context_level: None,
+        DomainDirectorIntent::RespondGate { gate_id, verdict } => FfiDirectorIntent::RespondGate {
+            gate_id: gate_id.as_str().to_owned(),
+            verdict: (*verdict).into(),
         },
-        DomainDirectorIntent::SubmitReview { frame_id, stance } => FfiDirectorIntent {
-            kind: DirectorIntentKind::SubmitReview,
-            frame_id: Some(frame_id.clone()),
-            choice_id: None,
-            gate_id: None,
-            gate_verdict: None,
-            review_stance: Some((*stance).into()),
-            context_level: None,
+        DomainDirectorIntent::SubmitReview { frame_id, stance } => FfiDirectorIntent::SubmitReview {
+            frame_id: frame_id.clone(),
+            stance: (*stance).into(),
         },
-        DomainDirectorIntent::RequestContext { level } => FfiDirectorIntent {
-            kind: DirectorIntentKind::RequestContext,
-            frame_id: None,
-            choice_id: None,
-            gate_id: None,
-            gate_verdict: None,
-            review_stance: None,
-            context_level: Some((*level).into()),
+        DomainDirectorIntent::RequestContext { level } => FfiDirectorIntent::RequestContext {
+            level: (*level).into(),
         },
     }
 }
 
 fn from_ffi_intent(intent: FfiDirectorIntent) -> Result<DomainDirectorIntent, ()> {
-    match intent.kind {
-        DirectorIntentKind::OpenTask => {
-            let frame_id = intent.frame_id.ok_or(())?;
-            Ok(DomainDirectorIntent::OpenTask { frame_id })
-        }
-        DirectorIntentKind::SubmitJudgment => {
-            let frame_id = intent.frame_id.ok_or(())?;
-            let choice_id = intent.choice_id.ok_or(())?;
+    match intent {
+        FfiDirectorIntent::OpenTask { frame_id } => Ok(DomainDirectorIntent::OpenTask { frame_id }),
+        FfiDirectorIntent::SubmitJudgment { frame_id, choice_id } => {
             Ok(DomainDirectorIntent::SubmitJudgment {
                 frame_id,
                 choice_id,
             })
         }
-        DirectorIntentKind::RespondGate => {
-            let gate_id = intent.gate_id.ok_or(())?;
-            let verdict = intent.gate_verdict.ok_or(())?;
-            Ok(DomainDirectorIntent::RespondGate {
-                gate_id: GateId::from_string(gate_id),
-                verdict: verdict.into(),
-            })
-        }
-        DirectorIntentKind::SubmitReview => {
-            let frame_id = intent.frame_id.ok_or(())?;
-            let stance = intent.review_stance.ok_or(())?;
-            Ok(DomainDirectorIntent::SubmitReview {
-                frame_id,
-                stance: stance.into(),
-            })
-        }
-        DirectorIntentKind::RequestContext => {
-            let level = intent.context_level.ok_or(())?;
-            Ok(DomainDirectorIntent::RequestContext {
-                level: level.into(),
-            })
-        }
+        FfiDirectorIntent::RespondGate { gate_id, verdict } => Ok(DomainDirectorIntent::RespondGate {
+            gate_id: GateId::from_string(gate_id),
+            verdict: verdict.into(),
+        }),
+        FfiDirectorIntent::SubmitReview { frame_id, stance } => Ok(DomainDirectorIntent::SubmitReview {
+            frame_id,
+            stance: stance.into(),
+        }),
+        FfiDirectorIntent::RequestContext { level } => Ok(DomainDirectorIntent::RequestContext {
+            level: level.into(),
+        }),
     }
 }
 
@@ -591,14 +507,9 @@ mod tests {
 
     #[test]
     fn submit_director_intent_round_trips_respond_gate() {
-        quorum_submit_director_intent(FfiDirectorIntent {
-            kind: DirectorIntentKind::RespondGate,
-            frame_id: None,
-            choice_id: None,
-            gate_id: Some("gate:procurement-security-approval".into()),
-            gate_verdict: Some(GateVerdict::Approve),
-            review_stance: None,
-            context_level: None,
+        quorum_submit_director_intent(FfiDirectorIntent::RespondGate {
+            gate_id: "gate:procurement-security-approval".into(),
+            verdict: GateVerdict::Approve,
         });
 
         let stored = take_last_director_intent().expect("intent stored");

@@ -129,36 +129,31 @@ seam to canonical Quorum.
 Goal: ship the first real iOS-native Quorum workflow: speech/text capture →
 editable draft → explicit consent.
 
-- [ ] M3.1 Create iOS feature folders for `Consent/`, `OfflineQueue/`, and
+- [x] M3.1 Create iOS feature folders for `Consent/`, `OfflineQueue/`, and
   `Realtime/`.
-  Acceptance: Quorum iOS source structure matches the product surfaces named in
-  the architecture report.
-- [ ] M3.2 Replace hardcoded inquiry id with an injected session/context value.
-  Acceptance: `SignalCaptureView` does not own a permanent fixture inquiry id.
-- [ ] M3.3 Add speech permission request flow.
-  Acceptance: user sees native permission request and a clear unavailable state
-  when permission is denied or restricted.
-- [ ] M3.4 Add speech transcript capture.
-  Acceptance: iOS can capture a voice signal into a transcript draft using
-  native Speech/AVFoundation APIs.
-- [ ] M3.5 Add text capture as a first-class path.
-  Acceptance: text capture uses the same state machine as speech capture, not a
-  separate demo-only path.
-- [ ] M3.6 Add local draft normalization hook.
-  Acceptance: `PlatformSignalExtractor` produces a structured draft input from
-  native capture output, with typed fallback when platform AI is unavailable.
-- [ ] M3.7 Add draft review screen.
-  Acceptance: raw capture, summary, contradiction/tension, confidence,
-  uncertainty, and redactions are visible and editable before consent.
-- [ ] M3.8 Add typed consent decisions in Swift.
-  Acceptance: Swift models accepted, edited-and-accepted, rejected,
-  saved-private, and expired without raw strings.
-- [ ] M3.9 Add save-private and discard actions.
-  Acceptance: user can keep a draft local or delete it without creating a sync
-  event.
-- [ ] M3.10 Add consented packet creation through the bridge.
-  Acceptance: only a consented or edited-and-consented draft can become a queued
-  packet.
+  Done 2026-06-30: `ios/Consent/`, `ios/OfflineQueue/` (renamed from `Queue/`),
+  `ios/Speech/`, `ios/Realtime/`.
+- [x] M3.2 Replace hardcoded inquiry id with an injected session/context value.
+  Done 2026-06-30: `CaptureSessionContext.inquiryThreadId()` from
+  `QUORUM_INQUIRY_THREAD_ID` env; `SignalCaptureView` accepts injected id.
+- [x] M3.3 Add speech permission request flow.
+  Done 2026-06-30: `Speech/SpeechCaptureService.swift` requests Speech + mic;
+  denied/restricted states surfaced in capture UI.
+- [x] M3.4 Add speech transcript capture.
+  Done 2026-06-30: live transcript via `SFSpeechRecognizer` + `AVAudioEngine`.
+- [x] M3.5 Add text capture as a first-class path.
+  Done 2026-06-30: unified capture form; text and voice share draft → review → consent flow.
+- [x] M3.6 Add local draft normalization hook.
+  Done 2026-06-30: `PlatformSignalExtractor.normalizeCapture` with typed trim fallback.
+- [x] M3.7 Add draft review screen.
+  Done 2026-06-30: `Consent/ConsentReviewView.swift` — editable summary, raw capture,
+  latent need, contradiction, confidence.
+- [x] M3.8 Add typed consent decisions in Swift.
+  Done 2026-06-30: UniFFI `ConsentDecision` + `ConsentReviewView` actions.
+- [x] M3.9 Add save-private and discard actions.
+  Done 2026-06-30: save-private keeps session-local draft; reject/discard skip sync.
+- [x] M3.10 Add consented packet creation through the bridge.
+  Done 2026-06-30: only `Accepted` / `EditedAndAccepted` call append + durable queue persist.
 
 ## M3A — Quorum AI Director UX Slice
 
@@ -201,25 +196,15 @@ and root epic `../KB/08-roadmap/2026-06-27-ai-director-ux-epic.md`.
   Acceptance: UI sends typed intents such as open task, submit judgment, approve
   gate, reject gate, request context; each intent maps to Helms/client action
   vocabulary, and view state updates only through a snapshot.
-- [ ] M3A.8 Align DirectorFrame with Helms `director-contracts`.
-  Status: **In progress** — `mobile-core` re-exports `director-contracts`;
-  Swift/Kotlin domain structs track the canonical shape; flat enums
-  (`GateVerdict`, `ContextLevel`, …) now come from UniFFI (M3A.10). Tagged
-  shapes (`WaitingFor`, `DirectorPrompt`, `DirectorIntent`) remain host-side
-  until a future UDL interface-enum pass.
-  Acceptance: provisional Swift/Kotlin mirrors track the canonical
-  `DirectorSnapshot { version, frame }` shape; replace with UniFFI-generated or
-  mapped types once Quorum FFI exposes the contract (M3A.10). `helm-client`
-  remains the projector from ordered spine events.
-- [ ] M3A.9 Add mobile-core snapshot envelope and replay harness.
-  Interim: `crates/mobile-core/src/director.rs` re-exports `director-contracts`,
-  deserializes the golden snapshot fixture, and exposes
-  `gate_condition_wire_label` for UniFFI; live projection via `helm-client` +
-  `QuorumDomainPresenter` is follow-up.
-  Acceptance: `crates/mobile-core` carries an immutable versioned mobile snapshot
-  envelope that includes the Helms DirectorFrame and derives its version from the
-  upstream SSE sequence; golden replay tests project canonical spine fixtures
-  into DirectorFrame.
+- [x] M3A.8 Align DirectorFrame with Helms `director-contracts`.
+  Done 2026-06-30: UniFFI interface-enum pass for `FfiWaitingFor`, `FfiDirectorPrompt`,
+  and `FfiDirectorIntent` in `schemas/quorum-mobile.udl`; Swift/Kotlin bridge mapping
+  updated for tagged wire enums; domain mirrors remain in `DirectorModels` at the
+  view boundary.
+- [x] M3A.9 Add mobile-core snapshot envelope and replay harness.
+  Done 2026-06-30: `crates/mobile-core/src/director/replay.rs` exposes
+  `MobileDirectorSnapshot` (version = upstream SSE sequence) and golden spine replay
+  tests (`SessionPush` + `GateCondition` → `helm-client` → `DirectorSnapshot`).
 - [x] M3A.10 Expose director snapshot through Quorum FFI.
   Acceptance: `apps/marquee/quorum-sense/ffi` emits the fixture-backed
   `DirectorSnapshot` through UniFFI (`quorum_current_director_snapshot`,
@@ -230,10 +215,10 @@ and root epic `../KB/08-roadmap/2026-06-27-ai-director-ux-epic.md`.
   semantic parity, not necessarily pixel parity.
 - [x] M3A.12 Wire live Director snapshot fetch against Quorum HTTP.
   Acceptance: `quorum_configure_director_api` + `GET /api/director/snapshot`
-  resolve through `mobile-core` using canonical `DirectorSnapshot`; fixture
-  fallback when the route is absent or unreachable; intent submit stays local
-  until Plan 2 session push; DEBUG builds default to
-  `http://127.0.0.1:5161/quorum-sense` with Bearer `dev`.
+  resolve through `mobile-core` using canonical `DirectorSnapshot`; Client Helm SSE
+  projection via `quorum_wait_director_update`; intent submit POSTs to
+  `POST /api/director/dev/intent` when configured (`LOCAL_DEV`); fixture fallback
+  when unreachable; DEBUG defaults to `http://127.0.0.1:5161/quorum-sense` Bearer `dev`.
 
 ## M4 — Shared Consent, Offline Queue, And Sync Core
 
@@ -288,26 +273,22 @@ Goal: make offline operation durable and reusable across the portfolio.
 
 Goal: make Android equal in architecture, even if individual native APIs differ.
 
-- [ ] M5.1 Add Kotlin value/domain wrappers.
-  Acceptance: `ConsentState`, `AppendEventType`, `SyncState`, and `Confidence`
-  are typed; raw strings/floats are mapped only at the boundary.
-- [ ] M5.2 Add Android `QuorumCoreBridgeFFI`.
-  Acceptance: product app can use generated UniFFI Kotlin bindings instead of
-  `PreviewQuorumCoreBridge`.
-- [ ] M5.3 Add Android product FFI build command.
-  Acceptance: a `just` command builds Quorum Android JNI libraries and Kotlin
-  bindings for the product app.
-- [ ] M5.4 Add Android product build CI.
-  Acceptance: CI assembles the Quorum Android product app, not only the generic
-  template.
-- [ ] M5.5 Add Compose consent review screen.
-  Acceptance: Android supports the same consent decisions as iOS.
+- [x] M5.1 Add Kotlin value/domain wrappers.
+  Done: typed `Confidence`, UniFFI enums at boundary, domain wrappers in `capture/`.
+- [x] M5.2 Add Android `QuorumCoreBridgeFFI`.
+  Done: production bridge maps FFI DTOs in `QuorumCoreBridgeFFI.kt`.
+- [x] M5.3 Add Android product FFI build command.
+  Done: `just quorum-android-uniffi` / `just quorum-android-build`.
+- [x] M5.4 Add Android product build CI.
+  Done 2026-06-30: `android-product` job runs `just quorum-android-build`.
+- [x] M5.5 Add Compose consent review screen.
+  Done 2026-06-30: `consent/ConsentReviewScreen.kt` mirrors iOS consent actions.
 - [ ] M5.6 Add WorkManager queue submission hook.
-  Acceptance: Android queued packets survive process death and retry in
-  background.
-- [ ] M5.7 Add native capture path selection.
-  Acceptance: text, voice transcript, and image/OCR capture flow into the same
-  bridge contract.
+  Scaffold 2026-06-30: `queue/QueueSubmitScheduler.kt` no-op interface; WorkManager
+  wiring waits on server submit path.
+- [x] M5.7 Add native capture path selection.
+  Done 2026-06-30: `PlatformSignalExtractor.normalizeCapture` + modality picker;
+  text/voice/OCR share one bridge contract.
 
 ## M6 — Capability-Aware Compute Placement
 

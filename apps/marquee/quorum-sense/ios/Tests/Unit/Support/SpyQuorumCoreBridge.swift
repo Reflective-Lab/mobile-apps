@@ -29,7 +29,7 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
     var persistStub: Result<PersistedQueueRecordSummary, Error> = .failure(TestError.unstubbed)
     var loadPersistedStub: Result<[PersistedQueueRecordSummary], Error> = .success([])
 
-    private(set) var persistCalls: [FieldSignalDraft] = []
+    private(set) var persistCalls: [(FieldSignalDraft, ConsentDecision)] = []
     private(set) var loadPersistedCallCount = 0
 
     func workflowId() async -> String {
@@ -70,8 +70,11 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
         return try appendStub.get()
     }
 
-    func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
-        persistCalls.append(draft)
+    func persistConsentedSignalToQueue(
+        _ draft: FieldSignalDraft,
+        consentDecision: ConsentDecision
+    ) async throws -> PersistedQueueRecordSummary {
+        persistCalls.append((draft, consentDecision))
         return try persistStub.get()
     }
 

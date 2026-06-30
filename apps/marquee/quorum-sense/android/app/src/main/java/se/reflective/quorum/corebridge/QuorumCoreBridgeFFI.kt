@@ -1,5 +1,6 @@
 package se.reflective.quorum.corebridge
 
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import se.reflective.quorum.capture.Confidence
@@ -7,14 +8,19 @@ import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
 import se.reflective.quorum.director.DirectorIntent
 import se.reflective.quorum.director.DirectorSnapshot
+import se.reflective.quorum.queue.PersistedQueueRecordSummary
+import se.reflective.quorum.queue.QuorumQueuePersistence
+import uniffi.quorum_ffi.ConsentDecision
 import uniffi.quorum_ffi.FfiQuorumAppendEvent
 import uniffi.quorum_ffi.FfiQuorumSignalDraft
 import uniffi.quorum_ffi.SignalModality
 import uniffi.quorum_ffi.quorumAppendConsentedSignal
+import uniffi.quorum_ffi.quorumCurrentDirectorSnapshot
+import uniffi.quorum_ffi.quorumDirectorSnapshotSource
 import uniffi.quorum_ffi.quorumDraftFieldSignal
 import uniffi.quorum_ffi.quorumFieldSignalWorkflowId
-import uniffi.quorum_ffi.quorumCurrentDirectorSnapshot
 import uniffi.quorum_ffi.quorumSubmitDirectorIntent
+import uniffi.quorum_ffi.quorumWaitDirectorUpdate
 
 /**
  * Raised when the Rust core returns a value this app build cannot map into a
@@ -30,26 +36,34 @@ sealed class CoreBridgeException(message: String) : Exception(message) {
 
 /**
  * Production [QuorumCoreBridge] backed by the Rust core through UniFFI.
- *
- * The generated bindings (`quorumDraftFieldSignal`, `FfiQuorumSignalDraft`,
- * `QuorumException`, …) live under `uniffi.quorum_ffi` and link against the
- * `jniLibs/<abi>/libquorum_ffi.so` produced by `scripts/build-mobile-ffi-android.sh`.
- * Both are generated and gitignored, so this file does not compile until that
- * script has run.
- *
- * This adapter is the *only* place the FFI wire DTOs (`Ffi*`) are translated to
- * and from the domain types, mirroring `quorum-ffi/src/lib.rs` and the iOS
- * `QuorumCoreBridgeFFI`. The closed-set fields are enums on the wire now, so they
- * cross unchanged; only `confidence` (a float) is validated. The synchronous FFI
- * runs off the main dispatcher (ADR 0003) so the UI thread is never blocked.
  */
-class QuorumCoreBridgeFFI : QuorumCoreBridge {
+class QuorumCoreBridgeFFI(
+    context: Context,
+    queuePersistence: QuorumQueuePersistence? = null,
+) : QuorumCoreBridge {
+    private val queuePersistence: QuorumQueuePersistence =
+        queuePersistence
+            ?: QuorumQueuePersistence.production(
+                context = context.applicationContext,
+                clientVersion = context.packageManager
+                    .getPackageInfo(context.packageName, 0)
+                    .versionName,
+            )
+
     override suspend fun workflowId(): String =
         withContext(Dispatchers.Default) { quorumFieldSignalWorkflowId() }
 
     override suspend fun currentDirectorSnapshot(): DirectorSnapshot =
         withContext(Dispatchers.Default) {
             DirectorBridgeMapping.toDomain(quorumCurrentDirectorSnapshot())
+        }
+
+    override suspend fun directorSnapshotSource(): String =
+        withContext(Dispatchers.Default) { quorumDirectorSnapshotSource() }
+
+    override suspend fun waitDirectorUpdate(sinceVersion: ULong, timeoutMs: UInt): Boolean =
+        withContext(Dispatchers.Default) {
+            quorumWaitDirectorUpdate(sinceVersion, timeoutMs)
         }
 
     override suspend fun submitDirectorIntent(intent: DirectorIntent) {
@@ -72,8 +86,14 @@ class QuorumCoreBridgeFFI : QuorumCoreBridge {
             quorumAppendConsentedSignal(draft.toFfi()).toDomain()
         }
 
-    // Boundary mapping (FFI wire DTO <-> domain). The closed sets are enums on the
-    // wire and cross as-is; only the float `confidence` still needs validation.
+    override suspend fun persistConsentedSignalToQueue(
+        draft: FieldSignalDraft,
+        consentDecision: ConsentDecision,
+    ): PersistedQueueRecordSummary =
+        queuePersistence.persistConsentedSignal(draft, consentDecision)
+
+    override suspend fun loadPersistedQueueRecords(): List<PersistedQueueRecordSummary> =
+        queuePersistence.loadPersistedRecords()
 
     private fun FfiQuorumSignalDraft.toDomain(): FieldSignalDraft {
         val parsedConfidence = Confidence.of(confidence)

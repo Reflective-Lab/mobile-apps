@@ -19,8 +19,6 @@ import se.reflective.quorum.director.SecondaryAction
 import se.reflective.quorum.director.WaitingFor
 import uniffi.quorum_ffi.BlockingState as FfiBlockingState
 import uniffi.quorum_ffi.ContextLevel as FfiContextLevel
-import uniffi.quorum_ffi.DirectorIntentKind
-import uniffi.quorum_ffi.DirectorPromptKind
 import uniffi.quorum_ffi.FfiChoice
 import uniffi.quorum_ffi.FfiDirectorFrame
 import uniffi.quorum_ffi.FfiDirectorIntent
@@ -36,9 +34,8 @@ import uniffi.quorum_ffi.FfiSecondaryAction
 import uniffi.quorum_ffi.FfiWaitingFor
 import uniffi.quorum_ffi.GateVerdict as FfiGateVerdict
 import uniffi.quorum_ffi.ReviewStance as FfiReviewStance
-import uniffi.quorum_ffi.WaitingForKind
 
-/** Maps UniFFI director wire DTOs to Kotlin domain types in `director/DirectorModels.kt`. */
+/** Maps UniFFI director wire enums to Kotlin domain types in `director/DirectorModels.kt`. */
 internal object DirectorBridgeMapping {
     fun toDomain(ffi: FfiDirectorSnapshot): DirectorSnapshot =
         DirectorSnapshot(
@@ -49,55 +46,24 @@ internal object DirectorBridgeMapping {
     fun toFfi(intent: DirectorIntent): FfiDirectorIntent =
         when (intent) {
             is DirectorIntent.OpenTask ->
-                FfiDirectorIntent(
-                    kind = DirectorIntentKind.OPEN_TASK,
-                    frameId = intent.frameId,
-                    choiceId = null,
-                    gateId = null,
-                    gateVerdict = null,
-                    reviewStance = null,
-                    contextLevel = null,
-                )
+                FfiDirectorIntent.OpenTask(frameId = intent.frameId)
             is DirectorIntent.SubmitJudgment ->
-                FfiDirectorIntent(
-                    kind = DirectorIntentKind.SUBMIT_JUDGMENT,
+                FfiDirectorIntent.SubmitJudgment(
                     frameId = intent.frameId,
                     choiceId = intent.choiceId,
-                    gateId = null,
-                    gateVerdict = null,
-                    reviewStance = null,
-                    contextLevel = null,
                 )
             is DirectorIntent.RespondGate ->
-                FfiDirectorIntent(
-                    kind = DirectorIntentKind.RESPOND_GATE,
-                    frameId = null,
-                    choiceId = null,
+                FfiDirectorIntent.RespondGate(
                     gateId = intent.gateId,
-                    gateVerdict = toFfi(intent.verdict),
-                    reviewStance = null,
-                    contextLevel = null,
+                    verdict = toFfi(intent.verdict),
                 )
             is DirectorIntent.SubmitReview ->
-                FfiDirectorIntent(
-                    kind = DirectorIntentKind.SUBMIT_REVIEW,
+                FfiDirectorIntent.SubmitReview(
                     frameId = intent.frameId,
-                    choiceId = null,
-                    gateId = null,
-                    gateVerdict = null,
-                    reviewStance = toFfi(intent.stance),
-                    contextLevel = null,
+                    stance = toFfi(intent.stance),
                 )
             is DirectorIntent.RequestContext ->
-                FfiDirectorIntent(
-                    kind = DirectorIntentKind.REQUEST_CONTEXT,
-                    frameId = null,
-                    choiceId = null,
-                    gateId = null,
-                    gateVerdict = null,
-                    reviewStance = null,
-                    contextLevel = toFfi(intent.level),
-                )
+                FfiDirectorIntent.RequestContext(level = toFfi(intent.level))
         }
 
     private fun toDomainFrame(ffi: FfiDirectorFrame): DirectorFrame =
@@ -123,11 +89,11 @@ internal object DirectorBridgeMapping {
         )
 
     private fun toDomainWaitingFor(ffi: FfiWaitingFor): WaitingFor =
-        when (ffi.kind) {
-            WaitingForKind.NOBODY -> WaitingFor.Nobody
-            WaitingForKind.PARTICIPANTS ->
-                WaitingFor.Participants(ffi.actorLabels.orEmpty())
-            WaitingForKind.SERVER -> WaitingFor.Server
+        when (ffi) {
+            is FfiWaitingFor.Nobody -> WaitingFor.Nobody
+            is FfiWaitingFor.Participants ->
+                WaitingFor.Participants(ffi.actorLabels)
+            is FfiWaitingFor.Server -> WaitingFor.Server
         }
 
     private fun toDomainPrimary(ffi: FfiPrimaryAction): PrimaryAction =
@@ -136,38 +102,32 @@ internal object DirectorBridgeMapping {
     private fun toDomainSecondary(ffi: FfiSecondaryAction): SecondaryAction =
         SecondaryAction(label = ffi.label, intent = toDomainIntent(ffi.intent))
 
-    private fun toDomainPrompt(ffi: FfiDirectorPrompt): DirectorPrompt? =
-        when (ffi.kind) {
-            DirectorPromptKind.JUDGMENT ->
-                ffi.judgment?.let { judgment ->
-                    DirectorPrompt.Judgment(
-                        JudgmentPrompt(
-                            question = judgment.question,
-                            body = judgment.body,
-                            choices = judgment.choices.map(::toDomainChoice),
-                        ),
-                    )
-                }
-            DirectorPromptKind.GATE ->
-                ffi.gate?.let { gate ->
-                    DirectorPrompt.Gate(
-                        GatePrompt(
-                            gateId = gate.gateId,
-                            reason = gate.reason,
-                            consequence = gate.consequence,
-                            deadlineMs = gate.deadlineMs,
-                        ),
-                    )
-                }
-            DirectorPromptKind.REVIEW ->
-                ffi.review?.let { review ->
-                    DirectorPrompt.Review(
-                        ReviewPrompt(
-                            title = review.title,
-                            primaryEvidence = review.primaryEvidence,
-                        ),
-                    )
-                }
+    private fun toDomainPrompt(ffi: FfiDirectorPrompt): DirectorPrompt =
+        when (ffi) {
+            is FfiDirectorPrompt.Judgment ->
+                DirectorPrompt.Judgment(
+                    JudgmentPrompt(
+                        question = ffi.judgment.question,
+                        body = ffi.judgment.body,
+                        choices = ffi.judgment.choices.map(::toDomainChoice),
+                    ),
+                )
+            is FfiDirectorPrompt.Gate ->
+                DirectorPrompt.Gate(
+                    GatePrompt(
+                        gateId = ffi.gate.gateId,
+                        reason = ffi.gate.reason,
+                        consequence = ffi.gate.consequence,
+                        deadlineMs = ffi.gate.deadlineMs,
+                    ),
+                )
+            is FfiDirectorPrompt.Review ->
+                DirectorPrompt.Review(
+                    ReviewPrompt(
+                        title = ffi.review.title,
+                        primaryEvidence = ffi.review.primaryEvidence,
+                    ),
+                )
         }
 
     private fun toDomainChoice(ffi: FfiChoice): Choice =
@@ -177,28 +137,26 @@ internal object DirectorBridgeMapping {
         PresenceHint(actorLabel = ffi.actorLabel, status = ffi.status)
 
     private fun toDomainIntent(ffi: FfiDirectorIntent): DirectorIntent =
-        when (ffi.kind) {
-            DirectorIntentKind.OPEN_TASK ->
-                DirectorIntent.OpenTask(ffi.frameId.orEmpty())
-            DirectorIntentKind.SUBMIT_JUDGMENT ->
+        when (ffi) {
+            is FfiDirectorIntent.OpenTask ->
+                DirectorIntent.OpenTask(ffi.frameId)
+            is FfiDirectorIntent.SubmitJudgment ->
                 DirectorIntent.SubmitJudgment(
-                    frameId = ffi.frameId.orEmpty(),
-                    choiceId = ffi.choiceId.orEmpty(),
+                    frameId = ffi.frameId,
+                    choiceId = ffi.choiceId,
                 )
-            DirectorIntentKind.RESPOND_GATE ->
+            is FfiDirectorIntent.RespondGate ->
                 DirectorIntent.RespondGate(
-                    gateId = ffi.gateId.orEmpty(),
-                    verdict = toDomain(ffi.gateVerdict ?: FfiGateVerdict.REJECT),
+                    gateId = ffi.gateId,
+                    verdict = toDomain(ffi.verdict),
                 )
-            DirectorIntentKind.SUBMIT_REVIEW ->
+            is FfiDirectorIntent.SubmitReview ->
                 DirectorIntent.SubmitReview(
-                    frameId = ffi.frameId.orEmpty(),
-                    stance = toDomain(ffi.reviewStance ?: FfiReviewStance.NEED_MORE_CONTEXT),
+                    frameId = ffi.frameId,
+                    stance = toDomain(ffi.stance),
                 )
-            DirectorIntentKind.REQUEST_CONTEXT ->
-                DirectorIntent.RequestContext(
-                    toDomainContextLevel(ffi.contextLevel ?: FfiContextLevel.TASK),
-                )
+            is FfiDirectorIntent.RequestContext ->
+                DirectorIntent.RequestContext(toDomainContextLevel(ffi.level))
         }
 
     private fun toDomain(ffi: FfiGateVerdict): GateVerdict =

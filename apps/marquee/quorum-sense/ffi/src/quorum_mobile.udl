@@ -120,29 +120,27 @@ enum BlockingState {
     "BlocksSession",
 };
 
-enum WaitingForKind {
-    "Nobody",
-    "Participants",
-    "Server",
+[Enum]
+interface FfiWaitingFor {
+    Nobody();
+    Participants(sequence<string> actor_labels);
+    Server();
 };
 
-enum DirectorPromptKind {
-    "Judgment",
-    "Gate",
-    "Review",
+[Enum]
+interface FfiDirectorPrompt {
+    Judgment(FfiJudgmentPrompt judgment);
+    Gate(FfiGatePrompt gate);
+    Review(FfiReviewPrompt review);
 };
 
-enum DirectorIntentKind {
-    "OpenTask",
-    "SubmitJudgment",
-    "RespondGate",
-    "SubmitReview",
-    "RequestContext",
-};
-
-dictionary FfiWaitingFor {
-    WaitingForKind kind;
-    sequence<string>? actor_labels;
+[Enum]
+interface FfiDirectorIntent {
+    OpenTask(string frame_id);
+    SubmitJudgment(string frame_id, string choice_id);
+    RespondGate(string gate_id, GateVerdict verdict);
+    SubmitReview(string frame_id, ReviewStance stance);
+    RequestContext(ContextLevel level);
 };
 
 dictionary FfiNowTask {
@@ -173,23 +171,6 @@ dictionary FfiGatePrompt {
 dictionary FfiReviewPrompt {
     string title;
     string primary_evidence;
-};
-
-dictionary FfiDirectorIntent {
-    DirectorIntentKind kind;
-    string? frame_id;
-    string? choice_id;
-    string? gate_id;
-    GateVerdict? gate_verdict;
-    ReviewStance? review_stance;
-    ContextLevel? context_level;
-};
-
-dictionary FfiDirectorPrompt {
-    DirectorPromptKind kind;
-    FfiJudgmentPrompt? judgment;
-    FfiGatePrompt? gate;
-    FfiReviewPrompt? review;
 };
 
 dictionary FfiPrimaryAction {

@@ -2,7 +2,6 @@ package se.reflective.quorum.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +16,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,96 +26,91 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import se.reflective.quorum.capture.CaptureSessionContext
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
 import se.reflective.quorum.capture.label
+import se.reflective.quorum.consent.ConsentOutcome
+import se.reflective.quorum.consent.ConsentReviewScreen
 import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
 import se.reflective.quorum.corebridge.QuorumCoreBridge
 import se.reflective.quorum.director.DirectorSnapshot
+import se.reflective.quorum.platformai.PlatformSignalExtractor
+import se.reflective.quorum.queue.PersistedQueueRecordSummary
+import se.reflective.quorum.queue.label
+import se.reflective.quorum.queue.permitsQueue
 import se.reflective.quorum.ui.director.DirectorNowScreen
 import se.reflective.quorum.ui.theme.QuorumTheme
 import uniffi.quorum_ffi.SignalModality
 
-private enum class QuorumScreen {
-    Home,
-    Director,
-    SignalCapture,
-}
-
 @Composable
 fun QuorumMobileApp(bridge: QuorumCoreBridge = PreviewQuorumCoreBridge()) {
     QuorumTheme {
-        var screen by remember { mutableStateOf(QuorumScreen.Home) }
+        var showCapture by remember { mutableStateOf(false) }
 
-        when (screen) {
-            QuorumScreen.Home -> HomeScreen(
-                onOpenDirector = { screen = QuorumScreen.Director },
-                onOpenSignalCapture = { screen = QuorumScreen.SignalCapture },
-            )
-
-            QuorumScreen.Director -> DirectorScreen(
+        if (showCapture) {
+            SignalCaptureScreen(
                 bridge = bridge,
-                onBack = { screen = QuorumScreen.Home },
+                onBack = { showCapture = false },
             )
-
-            QuorumScreen.SignalCapture -> SignalCaptureScreen(
+        } else {
+            DirectorRootScreen(
                 bridge = bridge,
-                onBack = { screen = QuorumScreen.Home },
+                onOpenSignalCapture = { showCapture = true },
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DirectorScreen(
+private fun DirectorRootScreen(
     bridge: QuorumCoreBridge,
-    onBack: () -> Unit,
+    onOpenSignalCapture: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var snapshot by remember { mutableStateOf<DirectorSnapshot?>(null) }
+    var snapshotSource by remember { mutableStateOf("…") }
 
     LaunchedEffect(bridge) {
-        snapshot = bridge.currentDirectorSnapshot()
+        while (isActive) {
+            snapshot = bridge.currentDirectorSnapshot()
+            snapshotSource = bridge.directorSnapshotSource()
+            val version = snapshot?.version ?: 0uL
+            val updated = bridge.waitDirectorUpdate(version, 30_000u)
+            if (!updated) {
+                // Poll again after timeout so fixture-only builds still refresh on intent.
+            }
+        }
     }
 
-    Column {
-        TextButton(onClick = onBack) {
-            Text("Back")
-        }
-
-        snapshot?.let { current ->
-            DirectorNowScreen(
-                snapshot = current,
-                onIntent = { intent ->
-                    scope.launch {
-                        bridge.submitDirectorIntent(intent)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Director") },
+                actions = {
+                    TextButton(onClick = onOpenSignalCapture) {
+                        Text("Signal Capture")
                     }
                 },
             )
-        }
-    }
-}
-
-@Composable
-private fun HomeScreen(
-    onOpenDirector: () -> Unit,
-    onOpenSignalCapture: () -> Unit,
-) {
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text("Quorum", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = onOpenDirector, modifier = Modifier.fillMaxWidth()) {
-                Text("AI Director")
-            }
-            Button(onClick = onOpenSignalCapture, modifier = Modifier.fillMaxWidth()) {
-                Text("Signal Capture")
+        },
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            Text(
+                text = snapshotSource,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            snapshot?.let { current ->
+                DirectorNowScreen(
+                    snapshot = current,
+                    onIntent = { intent ->
+                        scope.launch { bridge.submitDirectorIntent(intent) }
+                    },
+                )
             }
         }
     }
@@ -125,16 +120,25 @@ private fun HomeScreen(
 fun SignalCaptureScreen(
     bridge: QuorumCoreBridge = remember { PreviewQuorumCoreBridge() },
     onBack: (() -> Unit)? = null,
+    inquiryThreadId: String = CaptureSessionContext.inquiryThreadId(),
 ) {
     val scope = rememberCoroutineScope()
-    val inquiryThreadId = "inq_mobile_launch_risks"
+    val extractor = remember { PlatformSignalExtractor() }
 
-    var modality by remember { mutableStateOf(SignalModality.VOICE_TRANSCRIPT) }
-    var rawCapture by remember {
-        mutableStateOf("The sales team says rollout is fine, but support is seeing confusion in every pilot.")
-    }
+    var modality by remember { mutableStateOf(SignalModality.TEXT) }
+    var rawCapture by remember { mutableStateOf("") }
     var draft by remember { mutableStateOf<FieldSignalDraft?>(null) }
     var appendEvent by remember { mutableStateOf<QuorumAppendEvent?>(null) }
+    var persistedRecord by remember { mutableStateOf<PersistedQueueRecordSummary?>(null) }
+    var durableQueue by remember { mutableStateOf<List<PersistedQueueRecordSummary>>(emptyList()) }
+    var privateDrafts by remember { mutableStateOf<List<FieldSignalDraft>>(emptyList()) }
+    var normalizationNote by remember { mutableStateOf<String?>(null) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(bridge) {
+        durableQueue = bridge.loadPersistedQueueRecords()
+    }
 
     Scaffold { padding ->
         Column(
@@ -165,27 +169,82 @@ fun SignalCaptureScreen(
                 minLines = 5,
             )
 
+            normalizationNote?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+
             Button(
                 onClick = {
                     scope.launch {
                         appendEvent = null
-                        draft = bridge.draftFieldSignal(
-                            inquiryThreadId = inquiryThreadId,
-                            modality = modality,
-                            rawCapture = rawCapture,
-                        )
+                        persistedRecord = null
+                        statusMessage = null
+                        errorMessage = null
+                        draft = null
+                        runCatching {
+                            val normalized = extractor.normalizeCapture(modality, rawCapture)
+                            normalizationNote = if (normalized.usedPlatformAI) {
+                                "Normalized with platform AI."
+                            } else {
+                                "Normalized locally (platform AI unavailable)."
+                            }
+                            draft = bridge.draftFieldSignal(
+                                inquiryThreadId = inquiryThreadId,
+                                modality = normalized.input.modality,
+                                rawCapture = normalized.input.rawCapture,
+                            )
+                        }.onFailure { error ->
+                            errorMessage = error.message
+                        }
                     }
                 },
+                enabled = rawCapture.trim().isNotEmpty(),
             ) {
                 Text("Create Draft")
             }
 
             draft?.let { currentDraft ->
-                DraftCard(
+                ConsentReviewScreen(
                     draft = currentDraft,
-                    onConsent = {
+                    onOutcome = { outcome ->
                         scope.launch {
-                            appendEvent = bridge.appendConsentedSignal(currentDraft)
+                            statusMessage = null
+                            errorMessage = null
+                            when (outcome) {
+                                is ConsentOutcome.Accept -> {
+                                    if (!outcome.decision.permitsQueue()) {
+                                        errorMessage = "Consent ${outcome.decision.label()} cannot enter the queue."
+                                        return@launch
+                                    }
+                                    runCatching {
+                                        appendEvent = bridge.appendConsentedSignal(outcome.draft)
+                                        persistedRecord = bridge.persistConsentedSignalToQueue(
+                                            outcome.draft,
+                                            outcome.decision,
+                                        )
+                                        durableQueue = bridge.loadPersistedQueueRecords()
+                                        draft = null
+                                        statusMessage = "Queued with consent: ${outcome.decision.label()}."
+                                    }.onFailure { error ->
+                                        appendEvent = null
+                                        persistedRecord = null
+                                        errorMessage = error.message
+                                    }
+                                }
+                                is ConsentOutcome.SavePrivate -> {
+                                    privateDrafts = privateDrafts + outcome.draft
+                                    draft = null
+                                    statusMessage = "Saved private — not queued for sync."
+                                }
+                                ConsentOutcome.Reject -> {
+                                    draft = null
+                                    statusMessage = "Rejected — no sync event created."
+                                }
+                                ConsentOutcome.Discard -> {
+                                    draft = null
+                                    statusMessage = "Discarded."
+                                }
+                            }
                         }
                     },
                 )
@@ -202,6 +261,41 @@ fun SignalCaptureScreen(
                         Text(event.syncState.label)
                     }
                 }
+            }
+
+            persistedRecord?.let { record ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Durable Queue", style = MaterialTheme.typography.titleMedium)
+                        Text(record.recordId)
+                        Text("${record.queueState} · ${record.updatedAt}")
+                    }
+                }
+            }
+
+            if (privateDrafts.isNotEmpty()) {
+                Text("Private drafts (this session)", style = MaterialTheme.typography.titleMedium)
+                privateDrafts.forEach { item ->
+                    Text(item.summary)
+                }
+            }
+
+            if (durableQueue.isNotEmpty()) {
+                Text("Reloaded After Launch", style = MaterialTheme.typography.titleMedium)
+                durableQueue.forEach { record ->
+                    Text("${record.recordId} · ${record.queueState}")
+                }
+            }
+
+            statusMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.primary)
+            }
+
+            errorMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -224,31 +318,6 @@ private fun ModalitySelector(
                 ),
             ) {
                 Text(item.label)
-            }
-        }
-    }
-}
-
-@Composable
-private fun DraftCard(
-    draft: FieldSignalDraft,
-    onConsent: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Draft", style = MaterialTheme.typography.titleMedium)
-            Text(draft.summary)
-            Text("Consent: ${draft.consentState.label}")
-            Text("Confidence: ${"%.2f".format(draft.confidence.value)}")
-            Text(draft.contradiction, style = MaterialTheme.typography.bodySmall)
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onConsent) {
-                    Text("Consent And Queue")
-                }
             }
         }
     }
