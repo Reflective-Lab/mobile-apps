@@ -17,8 +17,8 @@ pub use director::{
 };
 
 pub use persistence::{
-    quorum_apply_queue_transition, quorum_build_persisted_queue_record,
-    quorum_validate_persisted_queue_record, ConsentDecision, QueueState,
+    ConsentDecision, QueueState, quorum_apply_queue_transition,
+    quorum_build_persisted_queue_record, quorum_validate_persisted_queue_record,
 };
 
 use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};

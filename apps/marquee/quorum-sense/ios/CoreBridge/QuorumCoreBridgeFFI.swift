@@ -74,11 +74,11 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
     }
 
     public func persistConsentedSignalToQueue(_ draft: FieldSignalDraft) async throws -> PersistedQueueRecordSummary {
-        try queuePersistence.persistConsentedSignal(draft)
+        try await queuePersistence.persistConsentedSignal(draft)
     }
 
     public func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary] {
-        try queuePersistence.loadPersistedRecords()
+        try await queuePersistence.loadPersistedRecords()
     }
 
     // MARK: - Boundary mapping (FFI wire DTO <-> Swift domain)
