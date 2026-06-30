@@ -6,9 +6,11 @@
 pub mod live;
 
 pub use live::{
-    DEFAULT_LOCAL_DEV_BEARER, DEFAULT_LOCAL_QUORUM_BASE_URL, DIRECTOR_SNAPSHOT_PATH,
-    DirectorApiConfig, DirectorSnapshotSource, LiveDirectorError, ResolveDirectorError,
-    director_snapshot_url, fetch_live_director_snapshot, resolve_director_snapshot,
+    DEFAULT_DIRECTOR_SESSION_ID, DEFAULT_LOCAL_DEV_BEARER, DEFAULT_LOCAL_QUORUM_BASE_URL,
+    DIRECTOR_SNAPSHOT_PATH, DirectorApiConfig, DirectorSnapshotSource, LiveDirectorError,
+    ResolveDirectorError, director_session_stream_url, director_snapshot_url,
+    fetch_live_director_snapshot, resolve_director_snapshot, start_director_sse_listener,
+    stop_director_sse_listener, wait_director_snapshot_version,
 };
 
 pub use director_contracts::{

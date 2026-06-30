@@ -261,13 +261,17 @@ namespace quorum_ffi {
     // AI Director projection boundary (director-contracts via mobile-core).
     FfiDirectorSnapshot quorum_current_director_snapshot();
 
-    // Configure live Quorum director snapshot fetch (GET /api/director/snapshot).
+    // Configure live Quorum director API + Client Helm SSE listener.
     // Call once at startup in debug/local builds; omit to stay on fixtures only.
     void quorum_configure_director_api(string base_url, string bearer_token);
 
     // Wire label for the last `quorum_current_director_snapshot` resolution:
-    // `live`, `fixture`, or `fixture_fallback:<reason>`.
+    // `live_sse`, `live`, `fixture`, or `fixture_fallback:<reason>`.
     string quorum_director_snapshot_source();
+
+    // Block until SSE delivers a director snapshot with version > since_version,
+    // or timeout_ms elapses. Returns true when a newer snapshot is available.
+    boolean quorum_wait_director_update(u64 since_version, u32 timeout_ms);
 
     void quorum_submit_director_intent(FfiDirectorIntent intent);
 

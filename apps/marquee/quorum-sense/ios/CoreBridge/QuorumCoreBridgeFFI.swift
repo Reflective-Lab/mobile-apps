@@ -51,6 +51,10 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         quorumDirectorSnapshotSource()
     }
 
+    public func waitDirectorUpdate(sinceVersion: UInt64, timeoutMs: UInt32) async -> Bool {
+        quorumWaitDirectorUpdate(sinceVersion: sinceVersion, timeoutMs: timeoutMs)
+    }
+
     public func submitDirectorIntent(_ intent: DirectorIntent) async throws {
         quorumSubmitDirectorIntent(intent: DirectorBridgeMapping.ffiIntent(intent))
     }

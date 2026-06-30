@@ -87,13 +87,16 @@ public struct DirectorNowView: View {
     }
 
     private func refreshLoop() async {
+        await loadSnapshot()
+        let initialVersion = snapshot?.version ?? 0
         while !Task.isCancelled {
-            await loadSnapshot()
-            #if DEBUG
-            try? await Task.sleep(for: .seconds(2))
-            #else
-            break
-            #endif
+            let updated = await bridge.waitDirectorUpdate(
+                sinceVersion: snapshot?.version ?? initialVersion,
+                timeoutMs: 30_000
+            )
+            if updated {
+                await loadSnapshot()
+            }
         }
     }
 
