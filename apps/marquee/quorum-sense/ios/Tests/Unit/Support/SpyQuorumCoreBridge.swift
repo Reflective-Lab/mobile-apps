@@ -45,6 +45,12 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
         directorSnapshotSourceStub
     }
 
+    func waitDirectorUpdate(sinceVersion: UInt64, timeoutMs: UInt32) async -> Bool {
+        _ = sinceVersion
+        _ = timeoutMs
+        return false
+    }
+
     func submitDirectorIntent(_ intent: DirectorIntent) async throws {
         directorIntentCalls.append(intent)
         try directorIntentStub.get()

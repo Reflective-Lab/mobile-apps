@@ -14,6 +14,7 @@ pub use director::{
     FfiSecondaryAction, FfiWaitingFor, GateVerdict, ReviewStance, WaitingForKind,
     quorum_configure_director_api, quorum_current_director_snapshot,
     quorum_director_snapshot_source, quorum_submit_director_intent,
+    quorum_wait_director_update,
 };
 
 pub use persistence::{

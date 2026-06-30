@@ -10,8 +10,10 @@ use reflective_mobile_core::director::{
     PrimaryAction as DomainPrimaryAction, ReviewStance as DomainReviewStance,
     SecondaryAction as DomainSecondaryAction, WaitingFor as DomainWaitingFor,
     gate_condition_wire_label, quorum_director_fixture_snapshot, resolve_director_snapshot,
+    start_director_sse_listener, stop_director_sse_listener, wait_director_snapshot_version,
 };
 use std::sync::Mutex;
+use std::time::Duration;
 
 // ---------------------------------------------------------------------------
 // UniFFI wire types (mirrors schemas/quorum-mobile.udl).
@@ -176,11 +178,10 @@ static LAST_SNAPSHOT_SOURCE: Mutex<String> = Mutex::new(String::new());
 /// Point the director boundary at a Quorum HTTP base (e.g. local `just dev`).
 /// Idempotent; safe to call from app startup before the first snapshot read.
 pub fn quorum_configure_director_api(base_url: String, bearer_token: String) {
+    let config = DirectorApiConfig::new(base_url, bearer_token);
+    start_director_sse_listener(config.clone());
     if let Ok(mut slot) = DIRECTOR_API.lock() {
-        *slot = Some(DirectorApiConfig {
-            base_url,
-            bearer_token,
-        });
+        *slot = Some(config);
     }
 }
 
@@ -213,8 +214,15 @@ pub fn quorum_current_director_snapshot() -> FfiDirectorSnapshot {
     to_ffi_snapshot(&snapshot)
 }
 
-/// Accepts a typed director intent from Swift/Kotlin. Stored locally until Plan 2
-/// wires session push and server intake; no HTTP POST yet.
+/// Block until the director snapshot version exceeds `since_version`, or
+/// `timeout_ms` elapses. Returns `true` when Client Helm processed a newer SSE event.
+#[must_use]
+pub fn quorum_wait_director_update(since_version: u64, timeout_ms: u32) -> bool {
+    let timeout = Duration::from_millis(u64::from(timeout_ms));
+    wait_director_snapshot_version(since_version, timeout)
+}
+
+/// Accepts a typed director intent from Swift/Kotlin.
 pub fn quorum_submit_director_intent(intent: FfiDirectorIntent) {
     if let Ok(domain) = from_ffi_intent(intent) {
         if let Ok(mut slot) = LAST_DIRECTOR_INTENT.lock() {
@@ -517,6 +525,7 @@ mod tests {
 
     #[cfg(test)]
     fn reset_director_api_for_tests() {
+        stop_director_sse_listener();
         if let Ok(mut slot) = DIRECTOR_API.lock() {
             *slot = None;
         }
@@ -557,12 +566,18 @@ mod tests {
         reset_director_api_for_tests();
         quorum_configure_director_api("http://127.0.0.1:5161/quorum-sense".into(), "dev".into());
         let snapshot = quorum_current_director_snapshot();
-        assert_eq!(snapshot.version, 1844);
         let source = quorum_director_snapshot_source();
         assert!(
-            source.starts_with("fixture_fallback:") || source == "live",
+            source.starts_with("fixture_fallback:")
+                || source == "live"
+                || source == "live_sse",
             "unexpected source: {source}"
         );
+        if source == "live" || source == "live_sse" {
+            assert!(snapshot.version >= 1);
+        } else {
+            assert_eq!(snapshot.version, 1844);
+        }
         reset_director_api_for_tests();
     }
 

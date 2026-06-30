@@ -8,6 +8,8 @@ public protocol QuorumCoreBridge: Sendable {
     func workflowId() async -> String
     func currentDirectorSnapshot() async throws -> DirectorSnapshot
     func directorSnapshotSource() async -> String
+    /// Block until SSE delivers a newer director snapshot, or `timeoutMs` elapses.
+    func waitDirectorUpdate(sinceVersion: UInt64, timeoutMs: UInt32) async -> Bool
     func submitDirectorIntent(_ intent: DirectorIntent) async throws
     func draftFieldSignal(
         inquiryThreadId: String,
@@ -36,6 +38,12 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
 
     public func directorSnapshotSource() async -> String {
         "fixture"
+    }
+
+    public func waitDirectorUpdate(sinceVersion: UInt64, timeoutMs: UInt32) async -> Bool {
+        _ = sinceVersion
+        _ = timeoutMs
+        return false
     }
 
     public func submitDirectorIntent(_ intent: DirectorIntent) async throws {
