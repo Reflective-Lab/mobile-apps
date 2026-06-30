@@ -7,7 +7,7 @@ use reflective_mobile_core::persistence::{PersistedQueueRecord, PersistenceError
 use reflective_mobile_core::queue::QueueState as DomainQueueState;
 use reflective_mobile_core::quorum::queue_capture_from_draft;
 
-use crate::{from_ffi_draft, observed, FfiQuorumSignalDraft, QuorumError};
+use crate::{FfiQuorumSignalDraft, QuorumError, from_ffi_draft, observed};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConsentDecision {
@@ -163,10 +163,13 @@ pub fn quorum_apply_queue_transition(
         let from = record.queue_state.clone();
         let entry = record.decode().map_err(persistence_error)?;
         let next: DomainQueueState = next_state.into();
-        let updated = entry.transition_to(next).map_err(|_| QuorumError::IllegalQueueTransition {
-            from,
-            to: next.as_str().to_owned(),
-        })?;
+        let updated =
+            entry
+                .transition_to(next)
+                .map_err(|_| QuorumError::IllegalQueueTransition {
+                    from,
+                    to: next.as_str().to_owned(),
+                })?;
         PersistedQueueRecord::encode(&updated, updated_at)
             .to_json()
             .map_err(persistence_error)
@@ -176,7 +179,7 @@ pub fn quorum_apply_queue_transition(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{quorum_draft_field_signal, SignalModality};
+    use crate::{SignalModality, quorum_draft_field_signal};
 
     const FIXTURE_INQUIRY_THREAD_ID: &str = "inq_mobile_launch_risks";
     const FIXTURE_RAW_CAPTURE: &str =

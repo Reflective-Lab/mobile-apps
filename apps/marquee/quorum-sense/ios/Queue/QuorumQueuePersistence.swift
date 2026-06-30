@@ -25,7 +25,7 @@ public actor QuorumQueuePersistence {
         _ draft: FieldSignalDraft,
         consentDecision: ConsentDecision = .accepted,
         offline: Bool = true
-    ) throws -> PersistedQueueRecordSummary {
+    ) async throws -> PersistedQueueRecordSummary {
         let now = QueueTimestamp.nowISO8601()
         let json = try quorumBuildPersistedQueueRecord(
             draft: Self.ffiDraft(draft),
@@ -39,13 +39,13 @@ public actor QuorumQueuePersistence {
         guard let summary = PersistedQueueRecordSummary.fromJSON(json) else {
             throw FileQueueStore.StoreError.unreadableRecord(draft.draftId)
         }
-        try store.save(recordId: summary.recordId, json: json)
+        try await store.save(recordId: summary.recordId, json: json)
         return summary
     }
 
     /// Reload every stored record, validating each blob through Rust on read.
-    public func loadPersistedRecords() throws -> [PersistedQueueRecordSummary] {
-        let blobs = try store.loadAllJSON()
+    public func loadPersistedRecords() async throws -> [PersistedQueueRecordSummary] {
+        let blobs = try await store.loadAllJSON()
         var summaries: [PersistedQueueRecordSummary] = []
         summaries.reserveCapacity(blobs.count)
 
@@ -63,8 +63,8 @@ public actor QuorumQueuePersistence {
     public func applyTransition(
         recordId: String,
         to nextState: QueueState
-    ) throws -> PersistedQueueRecordSummary {
-        guard let current = try store.load(recordId: recordId) else {
+    ) async throws -> PersistedQueueRecordSummary {
+        guard let current = try await store.load(recordId: recordId) else {
             throw FileQueueStore.StoreError.unreadableRecord(recordId)
         }
         let updated = try quorumApplyQueueTransition(
@@ -75,7 +75,7 @@ public actor QuorumQueuePersistence {
         guard let summary = PersistedQueueRecordSummary.fromJSON(updated) else {
             throw FileQueueStore.StoreError.unreadableRecord(recordId)
         }
-        try store.save(recordId: summary.recordId, json: updated)
+        try await store.save(recordId: summary.recordId, json: updated)
         return summary
     }
 
