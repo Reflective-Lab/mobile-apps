@@ -105,20 +105,22 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                NavigationLink("AI Director") {
-                    DirectorNowView(bridge: bridge)
-                        .navigationTitle("Director")
+            DirectorNowView(bridge: bridge)
+                .navigationTitle("Director")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            NavigationLink("Signal Capture") {
+                                SignalCaptureView(bridge: bridge)
+                                    .navigationTitle("Signal Capture")
+                            }
+                        } label: {
+                            Label("More", systemImage: "ellipsis.circle")
+                        }
+                        .accessibilityLabel("Context escape")
+                    }
                 }
-
-                NavigationLink("Signal Capture") {
-                    SignalCaptureView(bridge: bridge)
-                        .navigationTitle("Signal Capture")
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(Brand.paper.ignoresSafeArea())
-            .navigationTitle("Quorum")
         }
     }
 }
