@@ -67,7 +67,9 @@ pub enum DirectorSnapshotSource {
     /// Resolved from Quorum `GET /api/director/snapshot`.
     Live,
     FixtureOnly,
-    FixtureFallback { reason: String },
+    FixtureFallback {
+        reason: String,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -276,10 +278,7 @@ pub fn start_director_sse_listener(config: DirectorApiConfig) {
 
 /// Stop the background SSE listener, if running.
 pub fn stop_director_sse_listener() {
-    let handle = SSE_LISTENER
-        .lock()
-        .ok()
-        .and_then(|mut slot| slot.take());
+    let handle = SSE_LISTENER.lock().ok().and_then(|mut slot| slot.take());
     if let Some(handle) = handle {
         handle.stop.store(true, Ordering::Relaxed);
         if let Some(join) = handle.join {
@@ -366,7 +365,11 @@ pub fn resolve_director_snapshot(
     }
 }
 
-fn sse_listener_loop(config: DirectorApiConfig, state: &'static LiveSessionState, stop: Arc<AtomicBool>) {
+fn sse_listener_loop(
+    config: DirectorApiConfig,
+    state: &'static LiveSessionState,
+    stop: Arc<AtomicBool>,
+) {
     while !stop.load(Ordering::Relaxed) {
         let _ = read_sse_stream(&config, state, &stop);
         if stop.load(Ordering::Relaxed) {
@@ -469,9 +472,7 @@ fn apply_stream_envelope(state: &LiveSessionState, envelope: &StreamEnvelope) {
     }
 
     let presenter = QuorumDomainPresenter;
-    let snapshot = guard
-        .helm
-        .director_snapshot(envelope.sequence, &presenter);
+    let snapshot = guard.helm.director_snapshot(envelope.sequence, &presenter);
     guard.version = envelope.sequence;
     guard.snapshot = Some(snapshot);
     guard.has_sse_events = true;
@@ -485,6 +486,16 @@ mod tests {
     use helm_session_contracts::finding::FindingId;
     use helm_session_contracts::push::SessionContext;
     use helm_session_contracts::urgency::UrgencyIntent;
+    use std::sync::Mutex;
+
+    /// Global `LIVE_SESSION` is process-wide; serialize mutating tests.
+    static LIVE_DIRECTOR_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn live_session_test_lock() -> std::sync::MutexGuard<'static, ()> {
+        LIVE_DIRECTOR_TEST_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
 
     #[test]
     fn snapshot_url_joins_base_and_path() {
@@ -512,6 +523,7 @@ mod tests {
 
     #[test]
     fn resolve_with_unreachable_host_falls_back_to_fixture() {
+        let _lock = live_session_test_lock();
         reset_live_session_for_tests();
         let config = DirectorApiConfig {
             base_url: "http://127.0.0.1:1/unreachable".into(),
@@ -542,6 +554,7 @@ mod tests {
 
     #[test]
     fn sse_envelope_updates_client_helm_projection() {
+        let _lock = live_session_test_lock();
         reset_live_session_for_tests();
         let state = ensure_live_session();
         let push = SessionPush {
@@ -568,14 +581,12 @@ mod tests {
         let guard = state.inner.lock().expect("lock");
         assert!(guard.has_sse_events);
         assert_eq!(guard.version, 7);
-        assert_eq!(
-            guard.snapshot.as_ref().map(|s| s.version),
-            Some(7)
-        );
+        assert_eq!(guard.snapshot.as_ref().map(|s| s.version), Some(7));
     }
 
     #[test]
     fn resolve_prefers_sse_projection_over_http() {
+        let _lock = live_session_test_lock();
         reset_live_session_for_tests();
         let state = ensure_live_session();
         apply_stream_envelope(
@@ -603,8 +614,7 @@ mod tests {
             bearer_token: "dev".into(),
             session_id: DEFAULT_DIRECTOR_SESSION_ID.into(),
         };
-        let (snapshot, source) =
-            resolve_director_snapshot(Some(&config)).expect("sse projection");
+        let (snapshot, source) = resolve_director_snapshot(Some(&config)).expect("sse projection");
         assert_eq!(source, DirectorSnapshotSource::LiveSse);
         assert_eq!(snapshot.version, 3);
     }
