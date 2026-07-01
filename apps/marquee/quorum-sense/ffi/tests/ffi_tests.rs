@@ -10,7 +10,7 @@
 //! system enforces it at compile time, which is why this file no longer needs to.
 
 use quorum_ffi::{
-    AppendEventType, ConsentState, FfiDirectorIntent, FfiQuorumSignalDraft, GateVerdict, QuorumError,
+    AppendEventType, ConsentState, FfiDirectorIntent, FfiQuorumSignalDraft, QuorumError,
     SignalModality, SyncState, ai_execution_home, mobile_portfolio, quorum_append_consented_signal,
     quorum_current_director_snapshot, quorum_draft_field_signal, quorum_field_signal_workflow_id,
     quorum_submit_director_intent,
