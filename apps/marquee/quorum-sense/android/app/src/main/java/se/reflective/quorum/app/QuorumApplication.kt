@@ -8,6 +8,7 @@ import io.sentry.android.core.SentryAndroid
 import uniffi.quorum_ffi.initObservability
 import uniffi.quorum_ffi.quorumConfigureCaptureApi
 import uniffi.quorum_ffi.quorumConfigureDirectorApi
+import se.reflective.quorum.queue.WorkManagerQueueSubmitScheduler
 
 /**
  * Single place both crash clients initialise (QF-2026-06-24-05, ADR 0004):
@@ -25,8 +26,13 @@ import uniffi.quorum_ffi.quorumConfigureDirectorApi
  * Both run in `Application.onCreate`, before any activity, mirroring the iOS app.
  */
 class QuorumApplication : Application() {
+    lateinit var queueSubmitScheduler: WorkManagerQueueSubmitScheduler
+        private set
+
     override fun onCreate() {
         super.onCreate()
+
+        queueSubmitScheduler = WorkManagerQueueSubmitScheduler(this)
 
         SentryAndroid.init(this) { options ->
             options.beforeSend = SentryOptions.BeforeSendCallback { event, _ -> scrubPii(event) }
@@ -49,6 +55,9 @@ class QuorumApplication : Application() {
             quorumConfigureDirectorApi(quorumBase, quorumBearer)
             quorumConfigureCaptureApi(quorumBase, quorumBearer)
         }
+
+        // Flush any queued captures from prior sessions once network is available.
+        queueSubmitScheduler.enqueuePendingRecords()
     }
 }
 

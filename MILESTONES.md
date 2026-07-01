@@ -285,9 +285,9 @@ Goal: make Android equal in architecture, even if individual native APIs differ.
   Done 2026-06-30: `android-product` job runs `just quorum-android-build`.
 - [x] M5.5 Add Compose consent review screen.
   Done 2026-06-30: `consent/ConsentReviewScreen.kt` mirrors iOS consent actions.
-- [ ] M5.6 Add WorkManager queue submission hook.
-  Scaffold 2026-06-30: `queue/QueueSubmitScheduler.kt` no-op interface; WorkManager
-  wiring waits on server submit path.
+- [x] M5.6 Add WorkManager queue submission hook.
+  Done 2026-06-27: `QueueSubmitWorker` + `QueueBackgroundSubmit` enqueue on consent
+  persist and app startup; network-constrained unique work with exponential backoff.
 - [x] M5.7 Add native capture path selection.
   Done 2026-06-30: `PlatformSignalExtractor.normalizeCapture` + modality picker;
   text/voice/OCR share one bridge contract.

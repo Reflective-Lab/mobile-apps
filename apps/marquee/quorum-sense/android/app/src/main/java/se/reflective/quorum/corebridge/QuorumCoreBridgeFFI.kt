@@ -3,6 +3,7 @@ package se.reflective.quorum.corebridge
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import se.reflective.quorum.app.clientVersion
 import se.reflective.quorum.capture.Confidence
 import se.reflective.quorum.capture.FieldSignalDraft
 import se.reflective.quorum.capture.QuorumAppendEvent
@@ -45,9 +46,7 @@ class QuorumCoreBridgeFFI(
         queuePersistence
             ?: QuorumQueuePersistence.production(
                 context = context.applicationContext,
-                clientVersion = context.packageManager
-                    .getPackageInfo(context.packageName, 0)
-                    .versionName,
+                clientVersion = context.applicationContext.clientVersion(),
             )
 
     override suspend fun workflowId(): String =

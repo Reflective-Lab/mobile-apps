@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -39,6 +40,7 @@ import se.reflective.quorum.corebridge.QuorumCoreBridge
 import se.reflective.quorum.director.DirectorSnapshot
 import se.reflective.quorum.platformai.PlatformSignalExtractor
 import se.reflective.quorum.queue.PersistedQueueRecordSummary
+import se.reflective.quorum.queue.QueueBackgroundSubmit
 import se.reflective.quorum.queue.label
 import se.reflective.quorum.queue.permitsQueue
 import se.reflective.quorum.ui.director.DirectorNowScreen
@@ -124,6 +126,7 @@ fun SignalCaptureScreen(
 ) {
     val scope = rememberCoroutineScope()
     val extractor = remember { PlatformSignalExtractor() }
+    val appContext = LocalContext.current.applicationContext
 
     var modality by remember { mutableStateOf(SignalModality.TEXT) }
     var rawCapture by remember { mutableStateOf("") }
@@ -225,6 +228,7 @@ fun SignalCaptureScreen(
                                         durableQueue = bridge.loadPersistedQueueRecords()
                                         draft = null
                                         statusMessage = "Queued with consent: ${outcome.decision.label()}."
+                                        QueueBackgroundSubmit.enqueue(appContext)
                                     }.onFailure { error ->
                                         appendEvent = null
                                         persistedRecord = null
