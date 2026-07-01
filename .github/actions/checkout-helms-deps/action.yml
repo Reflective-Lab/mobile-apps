@@ -1,8 +1,9 @@
 name: Checkout monorepo layout for path dependencies
 description: >-
   mobile-core path-deps expect reflective/mobile-apps beside
-  reflective/bedrock-platform/helms. Standalone CI checkouts only fetch
-  mobile-apps; this action restores the sibling layout under GITHUB_WORKSPACE.
+  reflective/bedrock-platform/helms and reflective/bedrock-platform/converge.
+  Standalone CI checkouts only fetch mobile-apps; this action restores the
+  sibling layout under GITHUB_WORKSPACE.
 
 runs:
   using: composite
@@ -15,3 +16,9 @@ runs:
       with:
         repository: Reflective-Lab/helms
         path: reflective/bedrock-platform/helms
+
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        repository: Reflective-Lab/converge
+        ref: 84649f872cb15ebd6b2a31386dbce96ec5beec04
+        path: reflective/bedrock-platform/converge

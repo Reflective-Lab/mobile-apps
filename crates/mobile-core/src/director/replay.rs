@@ -146,7 +146,11 @@ mod tests {
         assert_eq!(envelope.version, 1844);
         assert_eq!(envelope.source_sequence, 1844);
         assert_eq!(
-            envelope.frame.now.as_ref().map(|now| now.objective.as_str()),
+            envelope
+                .frame
+                .now
+                .as_ref()
+                .map(|now| now.objective.as_str()),
             Some("Evaluate Vendor X's security claims")
         );
     }
@@ -188,7 +192,11 @@ mod tests {
         )
         .expect("push-only replay");
         assert_eq!(
-            replayed.frame.now.as_ref().map(|now| now.objective.as_str()),
+            replayed
+                .frame
+                .now
+                .as_ref()
+                .map(|now| now.objective.as_str()),
             Some("Evaluate Vendor X's security claims")
         );
     }

@@ -9,6 +9,11 @@ license.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
+# On-device fixed-point engine. Path dep + checkout-helms-deps CI action (M2.5).
+converge-core = { path = "../../../bedrock-platform/converge/crates/core" }
+async-trait = "0.1"
+pollster = "0.4"
+# Director/Helm: path deps match main until a published helms rev catches up.
 director-contracts = { path = "../../../bedrock-platform/helms/crates/director-contracts" }
 helm-client = { path = "../../../bedrock-platform/helms/crates/helm-client" }
 helm-session-contracts = { path = "../../../bedrock-platform/helms/crates/helm-session-contracts" }
@@ -16,16 +21,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 ureq = { version = "2", default-features = false, features = ["json", "tls"] }
-# On-device fixed-point engine for the local signal-refinement loop. Workspace
-# path dep into the bedrock-platform/converge tree (M2.5: workspace path
-# distribution). converge-core is pure (no tokio/network/server deps) and clears
-# the deny.toml client boundary. NEVER use converge_core::integrity here
-# (LamportClock/MerkleRoot are the collective/server chain concern — ADR 0002).
-converge-core = { path = "../../../bedrock-platform/converge/crates/core" }
-# Implement converge-core's async `Suggestor` trait for the local formation.
-async-trait = "0.1"
-# Minimal block_on to drive the async fixed-point engine in-process (no tokio).
-pollster = "0.4"
 
 [dev-dependencies]
 proptest = "1"

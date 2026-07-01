@@ -9,9 +9,9 @@ use reflective_mobile_core::director::{
     GateVerdict as DomainGateVerdict, NowTask as DomainNowTask, PresenceHint as DomainPresenceHint,
     PrimaryAction as DomainPrimaryAction, ReviewStance as DomainReviewStance,
     SecondaryAction as DomainSecondaryAction, WaitingFor as DomainWaitingFor,
-    gate_condition_wire_label, quorum_director_fixture_snapshot, resolve_director_snapshot,
-    start_director_sse_listener, stop_director_sse_listener, submit_director_intent,
-    apply_local_director_intent, wait_director_snapshot_version,
+    apply_local_director_intent, gate_condition_wire_label, quorum_director_fixture_snapshot,
+    resolve_director_snapshot, start_director_sse_listener, stop_director_sse_listener,
+    submit_director_intent, wait_director_snapshot_version,
 };
 use std::sync::Mutex;
 use std::time::Duration;
@@ -66,11 +66,24 @@ pub enum FfiDirectorPrompt {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FfiDirectorIntent {
-    OpenTask { frame_id: String },
-    SubmitJudgment { frame_id: String, choice_id: String },
-    RespondGate { gate_id: String, verdict: GateVerdict },
-    SubmitReview { frame_id: String, stance: ReviewStance },
-    RequestContext { level: ContextLevel },
+    OpenTask {
+        frame_id: String,
+    },
+    SubmitJudgment {
+        frame_id: String,
+        choice_id: String,
+    },
+    RespondGate {
+        gate_id: String,
+        verdict: GateVerdict,
+    },
+    SubmitReview {
+        frame_id: String,
+        stance: ReviewStance,
+    },
+    RequestContext {
+        level: ContextLevel,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -336,10 +349,12 @@ fn to_ffi_intent(intent: &DomainDirectorIntent) -> FfiDirectorIntent {
             gate_id: gate_id.as_str().to_owned(),
             verdict: (*verdict).into(),
         },
-        DomainDirectorIntent::SubmitReview { frame_id, stance } => FfiDirectorIntent::SubmitReview {
-            frame_id: frame_id.clone(),
-            stance: (*stance).into(),
-        },
+        DomainDirectorIntent::SubmitReview { frame_id, stance } => {
+            FfiDirectorIntent::SubmitReview {
+                frame_id: frame_id.clone(),
+                stance: (*stance).into(),
+            }
+        }
         DomainDirectorIntent::RequestContext { level } => FfiDirectorIntent::RequestContext {
             level: (*level).into(),
         },
@@ -349,20 +364,25 @@ fn to_ffi_intent(intent: &DomainDirectorIntent) -> FfiDirectorIntent {
 fn from_ffi_intent(intent: FfiDirectorIntent) -> Result<DomainDirectorIntent, ()> {
     match intent {
         FfiDirectorIntent::OpenTask { frame_id } => Ok(DomainDirectorIntent::OpenTask { frame_id }),
-        FfiDirectorIntent::SubmitJudgment { frame_id, choice_id } => {
-            Ok(DomainDirectorIntent::SubmitJudgment {
-                frame_id,
-                choice_id,
+        FfiDirectorIntent::SubmitJudgment {
+            frame_id,
+            choice_id,
+        } => Ok(DomainDirectorIntent::SubmitJudgment {
+            frame_id,
+            choice_id,
+        }),
+        FfiDirectorIntent::RespondGate { gate_id, verdict } => {
+            Ok(DomainDirectorIntent::RespondGate {
+                gate_id: GateId::from_string(gate_id),
+                verdict: verdict.into(),
             })
         }
-        FfiDirectorIntent::RespondGate { gate_id, verdict } => Ok(DomainDirectorIntent::RespondGate {
-            gate_id: GateId::from_string(gate_id),
-            verdict: verdict.into(),
-        }),
-        FfiDirectorIntent::SubmitReview { frame_id, stance } => Ok(DomainDirectorIntent::SubmitReview {
-            frame_id,
-            stance: stance.into(),
-        }),
+        FfiDirectorIntent::SubmitReview { frame_id, stance } => {
+            Ok(DomainDirectorIntent::SubmitReview {
+                frame_id,
+                stance: stance.into(),
+            })
+        }
         FfiDirectorIntent::RequestContext { level } => Ok(DomainDirectorIntent::RequestContext {
             level: level.into(),
         }),
@@ -492,9 +512,7 @@ mod tests {
         let snapshot = quorum_current_director_snapshot();
         let source = quorum_director_snapshot_source();
         assert!(
-            source.starts_with("fixture_fallback:")
-                || source == "live"
-                || source == "live_sse",
+            source.starts_with("fixture_fallback:") || source == "live" || source == "live_sse",
             "unexpected source: {source}"
         );
         if source == "live" || source == "live_sse" {

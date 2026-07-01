@@ -69,7 +69,11 @@ impl RefineBackend for HeuristicBackend {
         if trimmed.is_empty() {
             return "Empty capture needs participant clarification".to_owned();
         }
-        let first = trimmed.split(['.', '!', '?']).next().unwrap_or(trimmed).trim();
+        let first = trimmed
+            .split(['.', '!', '?'])
+            .next()
+            .unwrap_or(trimmed)
+            .trim();
         let base = if first.is_empty() { trimmed } else { first };
         // Bounded at 96 chars — a pipeline invariant the draft contract relies on
         // (see quorum_tests `draft_invariants_hold_for_any_input`).
@@ -228,7 +232,8 @@ impl Suggestor for SummarySuggestor {
     }
 
     fn accepts(&self, ctx: &dyn converge_core::Context) -> bool {
-        !seed_capture(ctx).is_empty() && live_field(ctx, ContextKey::Hypotheses, SUMMARY_ID).is_none()
+        !seed_capture(ctx).is_empty()
+            && live_field(ctx, ContextKey::Hypotheses, SUMMARY_ID).is_none()
     }
 
     async fn execute(&self, ctx: &dyn converge_core::Context) -> AgentEffect {
