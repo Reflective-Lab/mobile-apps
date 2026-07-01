@@ -302,4 +302,26 @@ namespace quorum_ffi {
         QueueState next_state,
         string updated_at
     );
+
+    // Capture submit boundary (M4.8–M4.9). Uses canonical Quorum HTTP path.
+    void quorum_configure_capture_api(string base_url, string bearer_token);
+
+    [Throws=QuorumError]
+    string quorum_build_capture_submit_body(string record_json);
+
+    [Throws=QuorumError]
+    string quorum_begin_queue_submit(string record_json, string updated_at);
+
+    [Throws=QuorumError]
+    string quorum_rollback_queue_submit(string record_json, string updated_at);
+
+    [Throws=QuorumError]
+    string quorum_reconcile_capture_admission(
+        string record_json,
+        string receipt_json,
+        string updated_at
+    );
+
+    [Throws=QuorumError]
+    string quorum_submit_persisted_queue_record(string record_json, string updated_at);
 };

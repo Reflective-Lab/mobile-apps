@@ -4,8 +4,7 @@
 //! When the server route is unavailable locally, callers reconcile receipts from
 //! tests or retry after `rollback_submission`.
 
-use crate::capture::{CapturePacket, CapturePacketError, ConsentRecord};
-use crate::consent::ConsentDecision;
+use crate::capture::CapturePacketError;
 use crate::director::DirectorApiConfig;
 use crate::persistence::{PersistedQueueRecord, PersistenceError};
 use crate::queue::{QueueState, QueuedCapture, QueuedCaptureError};
@@ -96,13 +95,19 @@ pub enum CaptureSubmitError {
     #[error("HTTP {status}: {body}")]
     HttpError { status: u16, body: String },
     #[error("network error: {0}")]
-    Transport(#[from] ureq::Error),
+    Transport(Box<ureq::Error>),
     #[error("invalid admission receipt JSON: {0}")]
     InvalidReceipt(#[from] serde_json::Error),
     #[error("admission receipt idempotency_key mismatch")]
     IdempotencyMismatch,
     #[error("admission receipt draft_id mismatch")]
     DraftIdMismatch,
+}
+
+impl From<ureq::Error> for CaptureSubmitError {
+    fn from(err: ureq::Error) -> Self {
+        Self::Transport(Box::new(err))
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -333,9 +338,10 @@ pub fn rollback_persisted_queue_submit(
 mod tests {
     use super::*;
     use crate::capture::{
-        AppVersion, CaptureModality, CapturePlatform, DraftPayload, IdempotencyKey, SourceMetadata,
-        WorkflowVersion,
+        AppVersion, CaptureModality, CapturePacket, CapturePlatform, ConsentRecord, DraftPayload,
+        IdempotencyKey, SourceMetadata, WorkflowVersion,
     };
+    use crate::consent::ConsentDecision;
 
     fn fixture_queued() -> QueuedCapture {
         QueuedCapture {

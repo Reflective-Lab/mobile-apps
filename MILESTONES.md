@@ -285,6 +285,8 @@ Goal: make Android equal in architecture, even if individual native APIs differ.
 
 ## M6 — Capability-Aware Compute Placement
 
+**Epic:** M5
+
 Goal: make local/server AI placement explicit, inspectable, and policy-driven.
 
 - [ ] M6.1 Define Rust `CapabilitySnapshot`.
@@ -309,6 +311,8 @@ Goal: make local/server AI placement explicit, inspectable, and policy-driven.
 
 ## M7 — Realtime Collaboration UX
 
+**Epic:** M6
+
 Goal: render collective intelligence state without simulating server authority.
 
 - [ ] M7.1 Define local vs server state labels.
@@ -332,6 +336,8 @@ Goal: render collective intelligence state without simulating server authority.
 
 ## M8 — Portfolio App Pattern
 
+**Epic:** M8
+
 Goal: make the Quorum pattern reusable for every Reflective mobile app.
 
 - [ ] M8.1 Add app classification worksheet template.
@@ -354,6 +360,8 @@ Goal: make the Quorum pattern reusable for every Reflective mobile app.
   and dependency-footprint note before product code is added.
 
 ## M9 — Release, Privacy, And Operations
+
+**Epic:** M10
 
 Goal: prepare mobile apps for real users and app-store distribution.
 
@@ -381,6 +389,8 @@ Goal: prepare mobile apps for real users and app-store distribution.
   server reconciliation.
 
 ## Backlog — Not Yet Scheduled
+
+**Epic:** M1
 
 - [ ] Add PhotosUI + Vision OCR path on iOS after speech/text path works.
 - [ ] Add CameraX + ML Kit OCR path on Android after FFI parity works.

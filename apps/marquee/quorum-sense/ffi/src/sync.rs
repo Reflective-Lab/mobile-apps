@@ -9,10 +9,7 @@ use reflective_mobile_core::sync::{
 };
 use std::sync::Mutex;
 
-use crate::{
-    ConsentDecision, QuorumError, SignalModality, observed, quorum_build_persisted_queue_record,
-    quorum_draft_field_signal,
-};
+use crate::{QuorumError, observed};
 
 static CAPTURE_API: Mutex<Option<DirectorApiConfig>> = Mutex::new(None);
 
@@ -102,16 +99,20 @@ pub fn quorum_submit_persisted_queue_record(
     record_json: String,
     updated_at: String,
 ) -> Result<String, QuorumError> {
-    observed((|| {
+    observed({
         let config = CAPTURE_API.lock().ok().and_then(|guard| guard.clone());
         submit_persisted_queue_record(&record_json, &updated_at, config.as_ref())
             .map_err(map_queue_submit_error)
-    })())
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        ConsentDecision, SignalModality, quorum_build_persisted_queue_record,
+        quorum_draft_field_signal,
+    };
 
     #[test]
     fn build_submit_body_from_persisted_record() {
