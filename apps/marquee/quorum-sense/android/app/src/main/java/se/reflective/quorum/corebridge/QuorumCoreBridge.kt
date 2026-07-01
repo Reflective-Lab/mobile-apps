@@ -40,6 +40,8 @@ interface QuorumCoreBridge {
     ): PersistedQueueRecordSummary
 
     suspend fun loadPersistedQueueRecords(): List<PersistedQueueRecordSummary>
+
+    suspend fun submitEligibleQueueRecords(): Int
 }
 
 class PreviewQuorumCoreBridge : QuorumCoreBridge {
@@ -109,7 +111,7 @@ class PreviewQuorumCoreBridge : QuorumCoreBridge {
 
     override suspend fun loadPersistedQueueRecords(): List<PersistedQueueRecordSummary> =
         queueStore.sortedBy { it.recordId }
-}
 
-// Replace PreviewQuorumCoreBridge with a UniFFI generated adapter when the Rust
+    override suspend fun submitEligibleQueueRecords(): Int = 0
+}
 // bridge is generated from schemas/quorum-mobile.udl.

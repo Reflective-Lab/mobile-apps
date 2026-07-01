@@ -6,6 +6,7 @@ import io.sentry.SentryEvent
 import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import uniffi.quorum_ffi.initObservability
+import uniffi.quorum_ffi.quorumConfigureCaptureApi
 import uniffi.quorum_ffi.quorumConfigureDirectorApi
 
 /**
@@ -46,6 +47,7 @@ class QuorumApplication : Application() {
                 ?: "http://127.0.0.1:5161/quorum-sense"
             val quorumBearer = System.getenv("QUORUM_BEARER_TOKEN") ?: "dev"
             quorumConfigureDirectorApi(quorumBase, quorumBearer)
+            quorumConfigureCaptureApi(quorumBase, quorumBearer)
         }
     }
 }

@@ -6,6 +6,7 @@ uniffi::include_scaffolding!("quorum_mobile");
 
 mod director;
 mod persistence;
+mod sync;
 
 pub use director::{
     BlockingState, ContextLevel, FfiChoice, FfiDirectorFrame, FfiDirectorIntent, FfiDirectorPrompt,
@@ -18,6 +19,12 @@ pub use director::{
 pub use persistence::{
     ConsentDecision, QueueState, quorum_apply_queue_transition,
     quorum_build_persisted_queue_record, quorum_validate_persisted_queue_record,
+};
+
+pub use sync::{
+    quorum_begin_queue_submit, quorum_build_capture_submit_body, quorum_configure_capture_api,
+    quorum_reconcile_capture_admission, quorum_rollback_queue_submit,
+    quorum_submit_persisted_queue_record,
 };
 
 use reflective_mobile_ai::{AiTask, ExecutionHome, recommended_home};
@@ -125,6 +132,12 @@ pub enum QuorumError {
     IllegalQueueTransition { from: String, to: String },
     #[error("consent decision {decision} does not permit queue")]
     ConsentDoesNotPermitQueue { decision: String },
+    #[error("capture submit API not configured")]
+    CaptureApiNotConfigured,
+    #[error("capture submit failed with HTTP {status}: {body}")]
+    CaptureSubmitFailed { status: u16, body: String },
+    #[error("invalid admission receipt: {detail}")]
+    InvalidAdmissionReceipt { detail: String },
 }
 
 impl QuorumError {
@@ -139,7 +152,10 @@ impl QuorumError {
             | QuorumError::UnsupportedTask { .. }
             | QuorumError::InvalidPersistedRecord { .. }
             | QuorumError::IllegalQueueTransition { .. }
-            | QuorumError::ConsentDoesNotPermitQueue { .. } => false,
+            | QuorumError::ConsentDoesNotPermitQueue { .. }
+            | QuorumError::CaptureApiNotConfigured
+            | QuorumError::CaptureSubmitFailed { .. }
+            | QuorumError::InvalidAdmissionReceipt { .. } => false,
         }
     }
 }

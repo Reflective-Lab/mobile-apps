@@ -12,6 +12,7 @@ pub mod director;
 pub mod persistence;
 pub mod queue;
 pub mod quorum;
+pub mod sync;
 
 pub use capture::{CapturePacket, CapturePacketError, ConsentRecord as CaptureConsentRecord};
 pub use consent::ConsentDecision;
@@ -20,6 +21,13 @@ pub use persistence::{
     persistence_round_trip,
 };
 pub use queue::{QueueState, QueueTransitionError, QueuedCapture, QueuedCaptureError};
+pub use sync::{
+    AdmissionOutcome, AdmissionReceipt, CaptureApiConfig, CaptureSubmitError, CaptureSubmitRequest,
+    CAPTURE_SUBMIT_PATH, QueueSubmitError, begin_persisted_queue_submit,
+    begin_submission, build_submit_request, build_submit_request_json, capture_submit_url, reconcile_admission_receipt,
+    reconcile_persisted_queue_record, rollback_persisted_queue_submit, rollback_submission,
+    submit_capture_request, submit_persisted_queue_record,
+};
 
 pub use quorum::director_presenter::QuorumDomainPresenter;
 

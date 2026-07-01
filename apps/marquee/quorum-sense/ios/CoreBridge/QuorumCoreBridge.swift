@@ -24,6 +24,8 @@ public protocol QuorumCoreBridge: Sendable {
     ) async throws -> PersistedQueueRecordSummary
     /// Reload durable queue records, validating each blob through Rust.
     func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary]
+    /// Background submit for queued / needs-review durable records (M4.7).
+    func submitEligibleQueueRecords() async throws -> Int
 }
 
 public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
@@ -102,6 +104,10 @@ public struct PreviewQuorumCoreBridge: QuorumCoreBridge {
 
     public func loadPersistedQueueRecords() async throws -> [PersistedQueueRecordSummary] {
         await queueStore.all()
+    }
+
+    public func submitEligibleQueueRecords() async throws -> Int {
+        0
     }
 }
 

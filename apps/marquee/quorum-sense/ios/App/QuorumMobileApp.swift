@@ -74,6 +74,7 @@ struct QuorumMobileApp: App {
         guard let quorumBase else { return }
         let quorumBearer = env["QUORUM_BEARER_TOKEN"] ?? "dev"
         quorumConfigureDirectorApi(baseUrl: quorumBase, bearerToken: quorumBearer)
+        quorumConfigureCaptureApi(baseUrl: quorumBase, bearerToken: quorumBearer)
     }
 
     var body: some Scene {
@@ -111,6 +112,9 @@ struct RootView: View {
             bridge = try QuorumCoreBridgeFFI()
         } catch {
             fatalError("Failed to initialise Quorum core bridge: \(error)")
+        }
+        QueueBackgroundSubmit.register { [bridge] in
+            (try? await bridge.submitEligibleQueueRecords()) ?? -1
         }
     }
 

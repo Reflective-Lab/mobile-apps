@@ -106,6 +106,12 @@ targets:
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe a captured voice signal on device.
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    info:
+      properties:
+        BGTaskSchedulerPermittedIdentifiers:
+          - se.reflective.quorum.queue-submit
+        UIBackgroundModes:
+          - processing
 
   # Unit/logic + boundary tests. Swift Testing (@Test/#expect) is the primary
   # framework; SnapshotTesting provides golden coverage. Hosted in the app so

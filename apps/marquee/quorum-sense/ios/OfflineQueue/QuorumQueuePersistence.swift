@@ -45,18 +45,54 @@ public actor QuorumQueuePersistence {
 
     /// Reload every stored record, validating each blob through Rust on read.
     public func loadPersistedRecords() async throws -> [PersistedQueueRecordSummary] {
+        try await loadPersistedRecordJSON().map { _, json in
+            guard let summary = PersistedQueueRecordSummary.fromJSON(json) else {
+                throw FileQueueStore.StoreError.unreadableRecord("unknown")
+            }
+            return summary
+        }.sorted { $0.recordId < $1.recordId }
+    }
+
+    /// Validated opaque JSON blobs keyed by `record_id`.
+    public func loadPersistedRecordJSON() async throws -> [String: String] {
         let blobs = try await store.loadAllJSON()
-        var summaries: [PersistedQueueRecordSummary] = []
-        summaries.reserveCapacity(blobs.count)
+        for (recordId, json) in blobs {
+            try quorumValidatePersistedQueueRecord(recordJson: json)
+            _ = recordId
+        }
+        return blobs
+    }
+
+    public func saveRecordJSON(recordId: String, json: String) async throws {
+        try quorumValidatePersistedQueueRecord(recordJson: json)
+        try await store.save(recordId: recordId, json: json)
+    }
+
+    /// Submit every `queued` / `needs_review` record through the Rust HTTP boundary.
+    public func submitEligibleRecords() async throws -> Int {
+        let now = QueueTimestamp.nowISO8601()
+        var submitted = 0
+        let blobs = try await loadPersistedRecordJSON()
 
         for (recordId, json) in blobs.sorted(by: { $0.key < $1.key }) {
-            try quorumValidatePersistedQueueRecord(recordJson: json)
-            guard let summary = PersistedQueueRecordSummary.fromJSON(json) else {
-                throw FileQueueStore.StoreError.unreadableRecord(recordId)
+            guard let summary = PersistedQueueRecordSummary.fromJSON(json),
+                  summary.queueState == "queued" || summary.queueState == "needs_review"
+            else { continue }
+
+            do {
+                let updated = try quorumSubmitPersistedQueueRecord(
+                    recordJson: json,
+                    updatedAt: now
+                )
+                try await saveRecordJSON(recordId: recordId, json: updated)
+                submitted += 1
+            } catch {
+                let rolledBack = try quorumRollbackQueueSubmit(recordJson: json, updatedAt: now)
+                try await saveRecordJSON(recordId: recordId, json: rolledBack)
+                throw error
             }
-            summaries.append(summary)
         }
-        return summaries
+        return submitted
     }
 
     /// Apply a Rust-validated transition and rewrite the stored JSON atomically.

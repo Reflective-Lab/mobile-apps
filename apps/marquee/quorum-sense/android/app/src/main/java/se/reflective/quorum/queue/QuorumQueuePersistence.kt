@@ -6,6 +6,8 @@ import uniffi.quorum_ffi.ConsentDecision
 import uniffi.quorum_ffi.FfiQuorumSignalDraft
 import uniffi.quorum_ffi.quorumApplyQueueTransition
 import uniffi.quorum_ffi.quorumBuildPersistedQueueRecord
+import uniffi.quorum_ffi.quorumRollbackQueueSubmit
+import uniffi.quorum_ffi.quorumSubmitPersistedQueueRecord
 import uniffi.quorum_ffi.quorumValidatePersistedQueueRecord
 
 /** Orchestrates Rust validation + native file durability for the offline queue. */
@@ -35,14 +37,40 @@ class QuorumQueuePersistence(
         return summary
     }
 
-    suspend fun loadPersistedRecords(): List<PersistedQueueRecordSummary> {
-        val blobs = store.loadAllJSON()
-        return blobs.keys.sorted().map { recordId ->
-            val json = blobs.getValue(recordId)
-            quorumValidatePersistedQueueRecord(json)
+    suspend fun loadPersistedRecords(): List<PersistedQueueRecordSummary> =
+        loadPersistedRecordJson().map { (_, json) ->
             persistedQueueRecordSummaryFromJSON(json)
-                ?: throw FileQueueStore.StoreException("unreadable record for $recordId")
+                ?: throw FileQueueStore.StoreException("unreadable record")
+        }.sortedBy { it.recordId }
+
+    suspend fun loadPersistedRecordJson(): Map<String, String> {
+        val blobs = store.loadAllJSON()
+        blobs.forEach { (_, json) -> quorumValidatePersistedQueueRecord(json) }
+        return blobs
+    }
+
+    suspend fun saveRecordJson(recordId: String, json: String) {
+        quorumValidatePersistedQueueRecord(json)
+        store.save(recordId, json)
+    }
+
+    suspend fun submitEligibleRecords(): Int {
+        val now = QueueTimestamp.nowISO8601()
+        var submitted = 0
+        for ((recordId, json) in loadPersistedRecordJson().toSortedMap()) {
+            val summary = persistedQueueRecordSummaryFromJSON(json) ?: continue
+            if (summary.queueState != "queued" && summary.queueState != "needs_review") continue
+            try {
+                val updated = quorumSubmitPersistedQueueRecord(json, now)
+                saveRecordJson(recordId, updated)
+                submitted += 1
+            } catch (error: Exception) {
+                val rolledBack = quorumRollbackQueueSubmit(json, now)
+                saveRecordJson(recordId, rolledBack)
+                throw error
+            }
         }
+        return submitted
     }
 
     suspend fun applyTransition(

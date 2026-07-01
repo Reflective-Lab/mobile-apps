@@ -82,6 +82,10 @@ final class SpyQuorumCoreBridge: QuorumCoreBridge {
         loadPersistedCallCount += 1
         return try loadPersistedStub.get()
     }
+
+    func submitEligibleQueueRecords() async throws -> Int {
+        0
+    }
 }
 
 /// Deterministic SplitMix64 RNG so property tests are reproducible across runs.

@@ -95,6 +95,9 @@ class QuorumCoreBridgeFFI(
     override suspend fun loadPersistedQueueRecords(): List<PersistedQueueRecordSummary> =
         queuePersistence.loadPersistedRecords()
 
+    override suspend fun submitEligibleQueueRecords(): Int =
+        queuePersistence.submitEligibleRecords()
+
     private fun FfiQuorumSignalDraft.toDomain(): FieldSignalDraft {
         val parsedConfidence = Confidence.of(confidence)
             ?: throw CoreBridgeException.ConfidenceOutOfRange(confidence)

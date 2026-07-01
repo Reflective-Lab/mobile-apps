@@ -227,6 +227,7 @@ public struct SignalCaptureView: View {
             durableQueue = try await bridge.loadPersistedQueueRecords()
             draft = nil
             statusMessage = "Queued with consent: \(decision.label)."
+            QueueBackgroundSubmit.schedule()
         } catch {
             appendEvent = nil
             persistedRecord = nil

@@ -98,6 +98,10 @@ public actor QuorumCoreBridgeFFI: QuorumCoreBridge {
         try await queuePersistence.loadPersistedRecords()
     }
 
+    public func submitEligibleQueueRecords() async throws -> Int {
+        try await queuePersistence.submitEligibleRecords()
+    }
+
     // MARK: - Boundary mapping (FFI wire DTO <-> Swift domain)
     // The single place wire strings/floats become domain types and back,
     // mirroring the Rust boundary in quorum-ffi/src/lib.rs.

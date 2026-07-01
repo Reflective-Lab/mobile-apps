@@ -255,19 +255,21 @@ Goal: make offline operation durable and reusable across the portfolio.
   call Rust for transitions before write (ADR 0005). Done: UniFFI persistence
   helpers, `FileQueueStore` + `QuorumQueuePersistence`, bridge wiring, and
   relaunch tests in `QueuePersistenceTests`.
-- [ ] M4.7 Add BGTaskScheduler submission hook.
-  Acceptance: queued packets can be retried in background when iOS allows it.
-- [ ] M4.8 Define HTTP submission client boundary.
-  Blocked: canonical Quorum server API contract must be available in this
-  checkout or generated into this repo.
-  Acceptance: mobile submits through the canonical Quorum API, not a new
-  mobile-specific transport.
-- [ ] M4.9 Add admission receipt reconciliation.
-  Acceptance: local queued/submitting state changes only after server response
-  or receipt reconciliation.
-- [ ] M4.10 Add replay tests for queue behavior.
-  Acceptance: Rust tests cover offline, retry, duplicate idempotency key, server
-  rejection, and needs-review flows.
+- [x] M4.7 Add BGTaskScheduler submission hook.
+  Done 2026-06-30: `OfflineQueue/QueueBackgroundSubmit.swift` registers
+  `se.reflective.quorum.queue-submit`; schedules after consent queue persist;
+  bridge `submitEligibleQueueRecords()` drives Rust HTTP submit.
+- [x] M4.8 Define HTTP submission client boundary.
+  Done 2026-06-30: `mobile-core/src/sync.rs` defines `POST /api/capture/submit`,
+  `CaptureSubmitRequest`, UniFFI `quorum_configure_capture_api` +
+  `quorum_submit_persisted_queue_record`. Live server route lands in
+  `marquee-apps/quorum-sense` separately.
+- [x] M4.9 Add admission receipt reconciliation.
+  Done 2026-06-30: `AdmissionReceipt` + `reconcile_admission_receipt` /
+  `quorum_reconcile_capture_admission`; local state advances only after receipt.
+- [x] M4.10 Add replay tests for queue behavior.
+  Done 2026-06-30: `crates/mobile-core/tests/queue_replay_tests.rs` covers offline
+  persist, submit/admit, rollback, duplicate idempotency, rejection→review→retry.
 
 ## M5 — Android Parity
 

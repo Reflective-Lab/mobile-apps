@@ -22,6 +22,9 @@ interface QuorumError {
     InvalidPersistedRecord(string detail);
     IllegalQueueTransition(string from, string to);
     ConsentDoesNotPermitQueue(string decision);
+    CaptureApiNotConfigured();
+    CaptureSubmitFailed(u16 status, string body);
+    InvalidAdmissionReceipt(string detail);
 };
 
 // Wire enums: the contract carries domain enums, not strings, so neither Swift
