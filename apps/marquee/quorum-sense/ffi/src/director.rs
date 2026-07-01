@@ -10,8 +10,8 @@ use reflective_mobile_core::director::{
     PrimaryAction as DomainPrimaryAction, ReviewStance as DomainReviewStance,
     SecondaryAction as DomainSecondaryAction, WaitingFor as DomainWaitingFor,
     apply_local_director_intent, gate_condition_wire_label, quorum_director_fixture_snapshot,
-    resolve_director_snapshot, start_director_sse_listener, stop_director_sse_listener,
-    submit_director_intent, wait_director_snapshot_version,
+    resolve_director_snapshot, start_director_sse_listener, submit_director_intent,
+    wait_director_snapshot_version,
 };
 use std::sync::Mutex;
 use std::time::Duration;
@@ -220,10 +220,10 @@ pub fn quorum_submit_director_intent(intent: FfiDirectorIntent) {
         *slot = Some(domain.clone());
     }
     apply_local_director_intent(&domain);
-    if let Ok(guard) = DIRECTOR_API.lock() {
-        if let Some(config) = guard.as_ref() {
-            let _ = submit_director_intent(config, &domain);
-        }
+    if let Ok(guard) = DIRECTOR_API.lock()
+        && let Some(config) = guard.as_ref()
+    {
+        let _ = submit_director_intent(config, &domain);
     }
 }
 
@@ -466,6 +466,7 @@ impl From<DomainBlockingState> for BlockingState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reflective_mobile_core::director::stop_director_sse_listener;
 
     #[cfg(test)]
     fn reset_director_api_for_tests() {

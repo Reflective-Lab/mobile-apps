@@ -3,9 +3,8 @@
 //! `DirectorSnapshot.version` is the upstream SSE `sequence` from the spine fixture,
 //! not a mobile-local counter (M3A.9 envelope contract).
 
-use super::{DirectorSnapshot, quorum_director_fixture_snapshot, quorum_director_replay_fixture};
+use super::{DirectorSnapshot, quorum_director_replay_fixture};
 use crate::quorum::director_presenter::QuorumDomainPresenter;
-use director_contracts::DirectorPrompt;
 use helm_client::ClientHelm;
 use helm_session_contracts::finding::FindingId;
 use helm_session_contracts::gate::{GateCondition, GateId, GatedDecision};
@@ -56,6 +55,7 @@ struct SpineEvent {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct ExpectedProjection {
     snapshot_fixture: String,
     #[serde(default)]
@@ -137,7 +137,8 @@ pub fn replay_quorum_decision_checkpoint() -> Result<MobileDirectorSnapshot, Rep
 #[cfg(test)]
 mod tests {
     use super::*;
-    use director_contracts::BlockingState;
+    use crate::director::quorum_director_fixture_snapshot;
+    use director_contracts::{BlockingState, DirectorPrompt};
 
     #[test]
     fn golden_snapshot_deserializes_as_envelope() {

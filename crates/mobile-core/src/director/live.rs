@@ -77,11 +77,17 @@ pub enum LiveDirectorError {
     #[error("HTTP {status}: {body}")]
     HttpError { status: u16, body: String },
     #[error("network error: {0}")]
-    Transport(#[from] ureq::Error),
+    Transport(Box<ureq::Error>),
     #[error("failed to read response body: {0}")]
     BodyRead(#[from] std::io::Error),
     #[error("invalid snapshot JSON: {0}")]
     Json(#[from] serde_json::Error),
+}
+
+impl From<ureq::Error> for LiveDirectorError {
+    fn from(err: ureq::Error) -> Self {
+        Self::Transport(Box::new(err))
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -237,17 +243,14 @@ pub fn apply_local_director_intent(intent: &DirectorIntent) {
         return;
     };
 
-    match intent {
-        DirectorIntent::RespondGate { gate_id, verdict } => {
-            let response = serde_json::json!({
-                "verdict": match verdict {
-                    GateVerdict::Approve => "approve",
-                    GateVerdict::Reject => "reject",
-                }
-            });
-            guard.helm.respond_to_gate(gate_id, response);
-        }
-        _ => {}
+    if let DirectorIntent::RespondGate { gate_id, verdict } = intent {
+        let response = serde_json::json!({
+            "verdict": match verdict {
+                GateVerdict::Approve => "approve",
+                GateVerdict::Reject => "reject",
+            }
+        });
+        guard.helm.respond_to_gate(gate_id, response);
     }
 
     let presenter = QuorumDomainPresenter;
@@ -291,15 +294,15 @@ pub fn stop_director_sse_listener() {
 #[cfg(test)]
 pub fn reset_live_session_for_tests() {
     stop_director_sse_listener();
-    if let Some(state) = live_session() {
-        if let Ok(mut guard) = state.inner.lock() {
-            *guard = LiveSessionInner {
-                helm: ClientHelm::new(),
-                version: 0,
-                snapshot: None,
-                has_sse_events: false,
-            };
-        }
+    if let Some(state) = live_session()
+        && let Ok(mut guard) = state.inner.lock()
+    {
+        *guard = LiveSessionInner {
+            helm: ClientHelm::new(),
+            version: 0,
+            snapshot: None,
+            has_sse_events: false,
+        };
     }
 }
 
@@ -337,16 +340,13 @@ pub fn wait_director_snapshot_version(since: u64, timeout: Duration) -> bool {
 pub fn resolve_director_snapshot(
     config: Option<&DirectorApiConfig>,
 ) -> Result<(DirectorSnapshot, DirectorSnapshotSource), ResolveDirectorError> {
-    if config.is_some() {
-        if let Some(state) = live_session() {
-            if let Ok(guard) = state.inner.lock() {
-                if guard.has_sse_events {
-                    if let Some(snapshot) = guard.snapshot.clone() {
-                        return Ok((snapshot, DirectorSnapshotSource::LiveSse));
-                    }
-                }
-            }
-        }
+    if config.is_some()
+        && let Some(state) = live_session()
+        && let Ok(guard) = state.inner.lock()
+        && guard.has_sse_events
+        && let Some(snapshot) = guard.snapshot.clone()
+    {
+        return Ok((snapshot, DirectorSnapshotSource::LiveSse));
     }
 
     match config {
@@ -462,10 +462,10 @@ fn apply_stream_envelope(state: &LiveSessionState, envelope: &StreamEnvelope) {
             }
         }
         SESSION_GATE_OPENED => {
-            if let Some(gate_value) = envelope.payload.get("gate") {
-                if let Ok(gate) = serde_json::from_value::<GatedDecision>(gate_value.clone()) {
-                    guard.helm.handle_gate(gate);
-                }
+            if let Some(gate_value) = envelope.payload.get("gate")
+                && let Ok(gate) = serde_json::from_value::<GatedDecision>(gate_value.clone())
+            {
+                guard.helm.handle_gate(gate);
             }
         }
         _ => return,
