@@ -1,7 +1,7 @@
 //! Queue lifecycle replay scenarios (M4.10).
 
 use reflective_mobile_core::capture::{
-    AppVersion, CaptureModality, CapturePlatform, CapturePacket, ConsentRecord, DraftPayload,
+    AppVersion, CaptureModality, CapturePacket, CapturePlatform, ConsentRecord, DraftPayload,
     IdempotencyKey, SourceMetadata, WorkflowVersion,
 };
 use reflective_mobile_core::consent::ConsentDecision;
@@ -82,12 +82,9 @@ fn submit_path_admits_after_receipt_reconciliation() {
         message: None,
     };
     let receipt_json = serde_json::to_string(&receipt).expect("receipt json");
-    let admitted_json = reconcile_persisted_queue_record(
-        &submitting_json,
-        &receipt_json,
-        "2026-06-06T12:05:00Z",
-    )
-    .expect("reconcile");
+    let admitted_json =
+        reconcile_persisted_queue_record(&submitting_json, &receipt_json, "2026-06-06T12:05:00Z")
+            .expect("reconcile");
 
     let admitted = PersistedQueueRecord::from_json(&admitted_json)
         .expect("parse")
@@ -101,8 +98,8 @@ fn network_failure_rolls_submitting_back_to_queued() {
     let json = persist_queued(ConsentDecision::Accepted);
     let submitting_json =
         begin_persisted_queue_submit(&json, "2026-06-06T12:04:00Z").expect("begin");
-    let rolled_json =
-        rollback_persisted_queue_submit(&submitting_json, "2026-06-06T12:05:00Z").expect("rollback");
+    let rolled_json = rollback_persisted_queue_submit(&submitting_json, "2026-06-06T12:05:00Z")
+        .expect("rollback");
     let rolled = PersistedQueueRecord::from_json(&rolled_json)
         .expect("parse")
         .decode()
@@ -142,7 +139,9 @@ fn server_rejection_moves_to_needs_review_on_retry_path() {
     let review = rejected
         .transition_to(QueueState::NeedsReview)
         .expect("needs review");
-    let requeued = review.transition_to(QueueState::Queued).expect("retry queue");
+    let requeued = review
+        .transition_to(QueueState::Queued)
+        .expect("retry queue");
     assert_eq!(requeued.state, QueueState::Queued);
 }
 

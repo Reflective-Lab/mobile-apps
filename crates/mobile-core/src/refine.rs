@@ -399,8 +399,12 @@ mod tests {
             reply: Some("The sales team is confident but support sees confusion.".to_owned()),
         };
         let backend = LlmRefineBackend::new(llm);
-        let summary = backend.summarize("the sales team sez rollot fine but suport seez confushion");
-        assert!(summary.contains("confusion"), "should use corrected LLM text");
+        let summary =
+            backend.summarize("the sales team sez rollot fine but suport seez confushion");
+        assert!(
+            summary.contains("confusion"),
+            "should use corrected LLM text"
+        );
         assert!(summary.chars().count() <= 96);
     }
 
@@ -409,7 +413,10 @@ mod tests {
         let backend = LlmRefineBackend::new(MockLlm { reply: None });
         let raw = "Sales says fine, but support sees confusion.";
         assert_eq!(backend.summarize(raw), HeuristicBackend.summarize(raw));
-        assert_eq!(backend.contradiction(raw), HeuristicBackend.contradiction(raw));
+        assert_eq!(
+            backend.contradiction(raw),
+            HeuristicBackend.contradiction(raw)
+        );
     }
 
     #[test]
@@ -417,7 +424,10 @@ mod tests {
         let backend = LlmRefineBackend::new(MockLlm {
             reply: Some("none".to_owned()),
         });
-        assert_eq!(backend.contradiction("a calm neutral note"), no_contradiction());
+        assert_eq!(
+            backend.contradiction("a calm neutral note"),
+            no_contradiction()
+        );
     }
 
     #[test]
@@ -425,7 +435,10 @@ mod tests {
         let llm = MockLlm {
             reply: Some("Corrected, polished summary text.".to_owned()),
         };
-        let refined = refine_capture_with("messy input but tension", Arc::new(LlmRefineBackend::new(llm)));
+        let refined = refine_capture_with(
+            "messy input but tension",
+            Arc::new(LlmRefineBackend::new(llm)),
+        );
         assert!(!refined.summary.is_empty());
         assert!((0.0..=1.0).contains(&refined.confidence));
     }

@@ -122,7 +122,9 @@ pub fn capture_submit_url(config: &CaptureApiConfig) -> String {
 }
 
 /// Build the canonical submit body from a queued capture entry.
-pub fn build_submit_request(entry: &QueuedCapture) -> Result<CaptureSubmitRequest, CaptureSubmitError> {
+pub fn build_submit_request(
+    entry: &QueuedCapture,
+) -> Result<CaptureSubmitRequest, CaptureSubmitError> {
     entry.packet.ready_for_queue()?;
     let consent = entry
         .packet
@@ -293,8 +295,8 @@ pub fn reconcile_persisted_queue_record(
         entry
     };
 
-    let reconciled = reconcile_admission_receipt(submitting, &receipt)
-        .map_err(CaptureSubmitError::from)?;
+    let reconciled =
+        reconcile_admission_receipt(submitting, &receipt).map_err(CaptureSubmitError::from)?;
 
     PersistedQueueRecord::encode(&reconciled, updated_at)
         .to_json()

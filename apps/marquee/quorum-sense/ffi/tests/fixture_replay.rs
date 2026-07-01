@@ -9,8 +9,7 @@ use quorum_ffi::{
 };
 use serde_json::Value;
 
-const FIXTURE_JSON: &str =
-    include_str!("../../fixtures/field-signal-capture.v1.json");
+const FIXTURE_JSON: &str = include_str!("../../fixtures/field-signal-capture.v1.json");
 
 fn fixture() -> Value {
     serde_json::from_str(FIXTURE_JSON).expect("fixture JSON parses")

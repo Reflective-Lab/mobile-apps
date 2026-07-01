@@ -3,13 +3,16 @@
 use reflective_mobile_core::director::DirectorApiConfig;
 use reflective_mobile_core::persistence::PersistedQueueRecord;
 use reflective_mobile_core::sync::{
-    begin_persisted_queue_submit, build_submit_request_json, reconcile_persisted_queue_record,
-    rollback_persisted_queue_submit, submit_persisted_queue_record, CaptureSubmitError,
-    QueueSubmitError,
+    CaptureSubmitError, QueueSubmitError, begin_persisted_queue_submit, build_submit_request_json,
+    reconcile_persisted_queue_record, rollback_persisted_queue_submit,
+    submit_persisted_queue_record,
 };
 use std::sync::Mutex;
 
-use crate::{ConsentDecision, QuorumError, SignalModality, observed, quorum_build_persisted_queue_record, quorum_draft_field_signal};
+use crate::{
+    ConsentDecision, QuorumError, SignalModality, observed, quorum_build_persisted_queue_record,
+    quorum_draft_field_signal,
+};
 
 static CAPTURE_API: Mutex<Option<DirectorApiConfig>> = Mutex::new(None);
 
@@ -23,10 +26,9 @@ pub fn quorum_configure_capture_api(base_url: String, bearer_token: String) {
 fn map_submit_error(error: CaptureSubmitError) -> QuorumError {
     match error {
         CaptureSubmitError::ApiNotConfigured => QuorumError::CaptureApiNotConfigured,
-        CaptureSubmitError::HttpError { status, body } => QuorumError::CaptureSubmitFailed {
-            status,
-            body,
-        },
+        CaptureSubmitError::HttpError { status, body } => {
+            QuorumError::CaptureSubmitFailed { status, body }
+        }
         CaptureSubmitError::InvalidReceipt(detail) => QuorumError::InvalidAdmissionReceipt {
             detail: detail.to_string(),
         },
@@ -57,9 +59,11 @@ pub fn quorum_build_capture_submit_body(record_json: String) -> Result<String, Q
                 detail: error.to_string(),
             }
         })?;
-        let entry = record.decode().map_err(|error| QuorumError::InvalidPersistedRecord {
-            detail: error.to_string(),
-        })?;
+        let entry = record
+            .decode()
+            .map_err(|error| QuorumError::InvalidPersistedRecord {
+                detail: error.to_string(),
+            })?;
         let request = build_submit_request_json(&entry).map_err(map_submit_error)?;
         Ok(request)
     })())
