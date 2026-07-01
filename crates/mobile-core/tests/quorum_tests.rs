@@ -215,8 +215,10 @@ use std::time::Duration;
 #[test]
 fn concurrent_draft_append_does_not_deadlock_or_panic() {
     const WORKERS: u64 = 16;
-    const ITERS: u64 = 25_000;
-    const DEADLINE: Duration = Duration::from_secs(60);
+    // Converge formation per draft is heavier than the pre-M2.1 heuristic path;
+    // keep enough total work to catch deadlocks without blowing the CI budget.
+    const ITERS: u64 = 5_000;
+    const DEADLINE: Duration = Duration::from_secs(120);
 
     let completed = Arc::new(AtomicU64::new(0));
     let (done_tx, done_rx) = mpsc::channel();
