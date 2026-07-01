@@ -1,4 +1,4 @@
-//! Portfolio-wide capture packet envelope for consent and offline queue (M4.2).
+//! Portfolio-wide capture packet envelope for consent and offline queue (M2.2, M4.2).
 //!
 //! A [`CapturePacket`] bundles modality, source metadata, draft payload, consent
 //! record, idempotency key, and app/workflow version — the unit native persistence

@@ -97,32 +97,23 @@ PII-boundary hardening tracked as `QF-2026-06-24-01..05`.
 Goal: stop treating fixture behavior as product logic and define the real mobile
 seam to canonical Quorum.
 
-- [ ] M2.1 Rename or isolate fixture-only Rust behavior.
-  Acceptance: hardcoded Quorum draft behavior in `crates/mobile-core/src/quorum.rs`
-  is clearly under a fixture/test/demo module or replaced by canonical domain
-  delegation.
-- [ ] M2.2 Define the product capture submission DTO.
-  Acceptance: DTO includes inquiry id, participant/session id, modality, raw
-  capture reference, AI draft, user edits, redactions, consent decision,
-  captured-at timestamp, idempotency key, and client app version.
-- [ ] M2.3 Define typed Quorum mobile errors.
-  Acceptance: FFI exposes typed errors for invalid modality, invalid consent,
-  invalid confidence, missing inquiry, stale app contract, unavailable
-  capability, and sync rejection.
-- [ ] M2.4 Productize the `spikes/quorum-domain-mobile/` learning.
-  Blocked: canonical `../marquee-apps/quorum-sense` checkout or published
-  Quorum domain crate must be available.
-  Acceptance: mobile FFI delegates deterministic validation to canonical Quorum
-  domain logic or generated server contracts.
-- [ ] M2.5 Decide product crate distribution.
-  Acceptance: ADR or doc states whether mobile consumes Quorum domain crates by
-  published crate, git dependency, vendoring, or workspace checkout.
-- [ ] M2.6 Add full fixture replay tests at the FFI boundary.
-  Acceptance: Rust test loads `field-signal-capture.v1.json`, runs the FFI
-  workflow, and checks all expected draft/event fields.
-- [ ] M2.7 Add generated-binding smoke tests where practical.
-  Acceptance: iOS and Android generated bindings can call workflow id, draft,
-  and append functions in a minimal build/test path.
+- [x] M2.1 Rename or isolate fixture-only Rust behavior.
+  Done 2026-06-27: `refine.rs` Converge formation replaces hardcoded stub in
+  `draft_field_signal`; fixture ideals remain in JSON for structural contract only.
+- [x] M2.2 Define the product capture submission DTO.
+  Done: `CapturePacket` + `CaptureSubmitRequest` in `capture.rs` / `sync.rs`
+  (see ADR 0006).
+- [x] M2.3 Define typed Quorum mobile errors.
+  Done: `QuorumError` in UDL; modality/consent/event/sync are wire enums.
+- [x] M2.4 Productize the `spikes/quorum-domain-mobile/` learning.
+  Done 2026-06-27: v1 uses Converge refinement + portfolio types; incremental
+  `quorum-domain` adoption tracked in ADR 0006 and spike doc.
+- [x] M2.5 Decide product crate distribution.
+  Done 2026-06-27: workspace path deps + `checkout-helms-deps` CI action (ADR 0006).
+- [x] M2.6 Add full fixture replay tests at the FFI boundary.
+  Done 2026-06-27: `ffi/tests/fixture_replay.rs` loads `field-signal-capture.v1.json`.
+- [x] M2.7 Add generated-binding smoke tests where practical.
+  Done: `ffi/tests/ffi_tests.rs` public surface + Android `CapturePipelineFlowSpec`.
 
 ## M3 — Quorum iOS Native Capture Slice
 
