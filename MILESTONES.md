@@ -253,8 +253,9 @@ Goal: make offline operation durable and reusable across the portfolio.
 - [x] M4.8 Define HTTP submission client boundary.
   Done 2026-06-30: `mobile-core/src/sync.rs` defines `POST /api/capture/submit`,
   `CaptureSubmitRequest`, UniFFI `quorum_configure_capture_api` +
-  `quorum_submit_persisted_queue_record`. Live server route lands in
-  `marquee-apps/quorum-sense` separately.
+  `quorum_submit_persisted_queue_record`. Server handler shipped 2026-06-27 in
+  `marquee-apps/quorum-sense` (`capture_submit.rs`, `runway.app.json`); E2E
+  submit path is live when the Quorum server is running.
 - [x] M4.9 Add admission receipt reconciliation.
   Done 2026-06-30: `AdmissionReceipt` + `reconcile_admission_receipt` /
   `quorum_reconcile_capture_admission`; local state advances only after receipt.
@@ -285,9 +286,13 @@ Goal: make Android equal in architecture, even if individual native APIs differ.
 
 ## M6 — Capability-Aware Compute Placement
 
-**Epic:** M5
+**Epic:** M6
 
 Goal: make local/server AI placement explicit, inspectable, and policy-driven.
+
+Status: **In progress — 2026-06-27.** Refinement backend seam (M6.7–M6.10) is on
+`main`; capability snapshot, placement policy, probes, and user-facing fallback
+copy (M6.1–M6.6) remain open.
 
 - [ ] M6.1 Define Rust `CapabilitySnapshot`.
   Acceptance: snapshot includes platform, OS version, local model availability,
@@ -308,6 +313,20 @@ Goal: make local/server AI placement explicit, inspectable, and policy-driven.
 - [ ] M6.6 Add user-visible fallback copy.
   Acceptance: UI explains when local AI, server AI, or manual-only mode is being
   used.
+- [x] M6.7 Add `RefineBackend` + heuristic fallback in mobile-core.
+  Done 2026-06-27: `refine.rs` — Converge formation with `HeuristicBackend`;
+  `draft_field_signal_with_backend` for pluggable language work.
+- [x] M6.8 Expose UniFFI `LlmBackend` callback for draft refinement.
+  Done 2026-06-27: `schemas/quorum-mobile.udl` callback interface;
+  `quorum_draft_field_signal_with_llm` in `quorum-ffi`; `LlmRefineBackend` per-field
+  fallback to heuristic when the model returns nothing.
+- [x] M6.9 Add local `quorum-refine-service` dev tool.
+  Done 2026-06-27: `tools/quorum-refine-service/` — HTTP `POST /complete` cloud-fallback
+  tier for simulator/emulator when no on-device model is available.
+- [x] M6.10 Wire native cloud-fallback LLM on iOS and Android.
+  Done 2026-06-27: `RefineServiceLlm.swift` / `RefineServiceLlm.kt` implement
+  `LlmBackend`; production bridges pass into `quorum_draft_field_signal_with_llm`.
+  Android `network_security_config.xml` permits localhost in debug.
 
 ## M7 — Realtime Collaboration UX
 
