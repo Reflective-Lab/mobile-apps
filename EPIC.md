@@ -1,3 +1,7 @@
+> **Archived 2026-07-02** — epics now live as Projects in Linear (Reflective team).
+> This file is kept for historical context only. E11 = Helm Coordination,
+> E12 = AI Director UX (resolved 2026-07-02).
+
 # EPIC — Native Mobile Portfolio Roadmap
 
 - Date: 2026-06-22
