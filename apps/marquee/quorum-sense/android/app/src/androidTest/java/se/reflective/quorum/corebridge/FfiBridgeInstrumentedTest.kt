@@ -1,6 +1,7 @@
 package se.reflective.quorum.corebridge
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -19,7 +20,7 @@ import uniffi.quorum_ffi.SyncState
 class FfiBridgeInstrumentedTest {
     @Test
     fun ffiAdapterRoundTripsThroughRealRustCore() = runBlocking {
-        val bridge = QuorumCoreBridgeFFI()
+        val bridge = QuorumCoreBridgeFFI(InstrumentationRegistry.getInstrumentation().targetContext)
 
         assertEquals("quorum.field_signal_capture.v1", bridge.workflowId())
 
@@ -48,7 +49,7 @@ class FfiBridgeInstrumentedTest {
      */
     @Test
     fun everyModalityRoundTripsThroughRealRustCore() = runBlocking {
-        val bridge = QuorumCoreBridgeFFI()
+        val bridge = QuorumCoreBridgeFFI(InstrumentationRegistry.getInstrumentation().targetContext)
         for (modality in SignalModality.entries) {
             val draft = bridge.draftFieldSignal(
                 inquiryThreadId = "inq_modality_roundtrip",
