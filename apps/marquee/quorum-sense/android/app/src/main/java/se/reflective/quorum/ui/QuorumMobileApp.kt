@@ -80,8 +80,8 @@ private fun DirectorRootScreen(
         while (isActive) {
             snapshot = bridge.currentDirectorSnapshot()
             snapshotSource = bridge.directorSnapshotSource()
-            val version = snapshot?.version ?: 0uL
-            val updated = bridge.waitDirectorUpdate(version, 30_000u)
+            val version = snapshot?.version ?: 0L
+            val updated = bridge.waitDirectorUpdate(version.toULong(), 30_000u)
             if (!updated) {
                 // Poll again after timeout so fixture-only builds still refresh on intent.
             }
