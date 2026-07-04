@@ -39,7 +39,7 @@ import uniffi.quorum_ffi.ReviewStance as FfiReviewStance
 internal object DirectorBridgeMapping {
     fun toDomain(ffi: FfiDirectorSnapshot): DirectorSnapshot =
         DirectorSnapshot(
-            version = ffi.version,
+            version = ffi.version.toLong(),
             frame = toDomainFrame(ffi.frame),
         )
 
@@ -118,7 +118,7 @@ internal object DirectorBridgeMapping {
                         gateId = ffi.gate.gateId,
                         reason = ffi.gate.reason,
                         consequence = ffi.gate.consequence,
-                        deadlineMs = ffi.gate.deadlineMs,
+                        deadlineMs = ffi.gate.deadlineMs?.toLong(),
                     ),
                 )
             is FfiDirectorPrompt.Review ->
