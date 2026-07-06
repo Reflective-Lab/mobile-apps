@@ -3,8 +3,11 @@ package se.reflective.quorum.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.printToString
 import org.junit.Rule
 import org.junit.Test
 import se.reflective.quorum.corebridge.PreviewQuorumCoreBridge
@@ -28,10 +31,20 @@ class SignalCaptureScreenTest {
         )
         composeRule.onNodeWithText("Create Draft").assertIsDisplayed().performClick()
 
+        // The consent card sits below the fold; a click on an off-screen node
+        // is silently dropped by touch injection, so scroll it into view first.
         val consent = composeRule.onNodeWithText("Accept and queue")
         consent.assertExists()
-        consent.performClick()
+        consent.performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Queued for sync").assertExists()
+        try {
+            composeRule.onNodeWithText("Queued for sync").assertExists()
+        } catch (original: AssertionError) {
+            throw AssertionError(
+                "Queued-event card missing after accept. Semantics tree:\n" +
+                    composeRule.onRoot().printToString(maxDepth = Int.MAX_VALUE),
+                original,
+            )
+        }
     }
 }
