@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,8 +82,8 @@ private fun DirectorRootScreen(
         while (isActive) {
             snapshot = bridge.currentDirectorSnapshot()
             snapshotSource = bridge.directorSnapshotSource()
-            val version = snapshot?.version ?: 0uL
-            val updated = bridge.waitDirectorUpdate(version, 30_000u)
+            val version = snapshot?.version ?: 0L
+            val updated = bridge.waitDirectorUpdate(version.toULong(), 30_000u)
             if (!updated) {
                 // Poll again after timeout so fixture-only builds still refresh on intent.
             }
@@ -147,6 +149,7 @@ fun SignalCaptureScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -228,7 +231,11 @@ fun SignalCaptureScreen(
                                         durableQueue = bridge.loadPersistedQueueRecords()
                                         draft = null
                                         statusMessage = "Queued with consent: ${outcome.decision.label()}."
-                                        QueueBackgroundSubmit.enqueue(appContext)
+                                    }.onSuccess {
+                                        // Best-effort: the record is already durable and the
+                                        // startup flush drains stranded queue entries, so a
+                                        // scheduling failure must not surface as a failed consent.
+                                        runCatching { QueueBackgroundSubmit.enqueue(appContext) }
                                     }.onFailure { error ->
                                         appendEvent = null
                                         persistedRecord = null

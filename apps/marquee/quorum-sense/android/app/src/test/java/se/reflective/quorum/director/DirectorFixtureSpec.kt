@@ -1,23 +1,21 @@
 package se.reflective.quorum.director
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 
-class DirectorFixtureSpec {
-    @Test
-    fun directorFixtureUsesUpstreamSequenceVersion() {
+class DirectorFixtureSpec : FunSpec({
+    test("director fixture uses upstream sequence version") {
         val snapshot = DirectorFixture.quorumDecisionCheckpoint
 
-        assertEquals(1844L, snapshot.version)
-        assertEquals("Evaluate Vendor X's security claims", snapshot.frame.now?.objective)
+        snapshot.version shouldBe 1844L
+        snapshot.frame.now?.objective shouldBe "Evaluate Vendor X's security claims"
     }
 
-    @Test
-    fun gateVerdictsAreContractBackedInSecondaryActions() {
+    test("gate verdicts are contract-backed in secondary actions") {
         val verdicts = DirectorFixture.quorumDecisionCheckpoint.frame.secondary.mapNotNull { action ->
             (action.intent as? DirectorIntent.RespondGate)?.verdict
         }
 
-        assertEquals(listOf(GateVerdict.REJECT), verdicts)
+        verdicts shouldBe listOf(GateVerdict.REJECT)
     }
-}
+})
