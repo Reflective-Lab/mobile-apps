@@ -228,7 +228,11 @@ fun SignalCaptureScreen(
                                         durableQueue = bridge.loadPersistedQueueRecords()
                                         draft = null
                                         statusMessage = "Queued with consent: ${outcome.decision.label()}."
-                                        QueueBackgroundSubmit.enqueue(appContext)
+                                    }.onSuccess {
+                                        // Best-effort: the record is already durable and the
+                                        // startup flush drains stranded queue entries, so a
+                                        // scheduling failure must not surface as a failed consent.
+                                        runCatching { QueueBackgroundSubmit.enqueue(appContext) }
                                     }.onFailure { error ->
                                         appendEvent = null
                                         persistedRecord = null
