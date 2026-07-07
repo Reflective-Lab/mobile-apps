@@ -54,7 +54,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // UniFFI Kotlin bindings depend on JNA at runtime. The @aar variant bundles
@@ -68,7 +68,7 @@ dependencies {
     testImplementation("io.kotest:kotest-property:6.2.1")
     testImplementation("io.mockk:mockk:1.14.11")
     testImplementation("app.cash.turbine:turbine:1.1.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 
     // --- Instrumented tests: Compose UI testing. ---
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
