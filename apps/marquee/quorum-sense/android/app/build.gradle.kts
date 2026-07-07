@@ -59,7 +59,7 @@ dependencies {
 
     // UniFFI Kotlin bindings depend on JNA at runtime. The @aar variant bundles
     // the native JNA libs Android needs.
-    implementation("net.java.dev.jna:jna:5.14.0@aar")
+    implementation("net.java.dev.jna:jna:5.19.1@aar")
 
     // --- Local (JVM) unit tests: Kotest runner + assertions + property,
     // MockK, Turbine, coroutines-test. ---
