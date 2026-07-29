@@ -67,7 +67,7 @@ dependencies {
     testImplementation("io.kotest:kotest-assertions-core:6.2.1")
     testImplementation("io.kotest:kotest-property:6.2.1")
     testImplementation("io.mockk:mockk:1.14.11")
-    testImplementation("app.cash.turbine:turbine:1.1.0")
+    testImplementation("app.cash.turbine:turbine:1.2.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 
     // --- Instrumented tests: Compose UI testing. ---
