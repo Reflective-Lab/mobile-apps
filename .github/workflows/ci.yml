@@ -29,6 +29,9 @@ jobs:
 
       - uses: ./.github/actions/checkout-helms-deps
 
+      - name: Build script environment boundary
+        run: bash scripts/tests/build-mobile-ffi-ios-env-test.sh
+
       - name: Install Rust toolchain
         run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt,clippy
 
