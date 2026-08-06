@@ -104,6 +104,10 @@ jobs:
       - name: Install xcodegen + just
         run: brew install xcodegen just
 
+      - name: Validate Quorum XcodeGen spec
+        working-directory: reflective/mobile-apps/apps/marquee/quorum-sense/ios
+        run: xcodegen generate
+
       - name: Install sentry-cli (for dSYM upload on release builds)
         run: brew install getsentry/tools/sentry-cli
 
