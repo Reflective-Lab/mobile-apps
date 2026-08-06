@@ -53,7 +53,7 @@ lipo -create \
 GEN_DIR=$(mktemp -d)
 trap 'rm -rf "$GEN_DIR"' EXIT
 echo "==> generating Swift bindings"
-cargo run -p "$CRATE" --bin uniffi-bindgen --quiet -- \
+env -u IPHONEOS_DEPLOYMENT_TARGET cargo run -p "$CRATE" --bin uniffi-bindgen --quiet -- \
     generate "$UDL" --language swift --out-dir "$GEN_DIR"
 
 # Package headers + modulemap. Rename to module.modulemap so clang

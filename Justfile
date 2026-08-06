@@ -45,6 +45,9 @@ doc:
 scaffold-check:
     bash scripts/check-mobile-scaffold.sh
 
+build-script-test:
+    bash scripts/tests/build-mobile-ffi-ios-env-test.sh
+
 # Fuzz the untrusted-input seam (QF-2026-06-24-06). Needs nightly + cargo-fuzz:
 #   rustup toolchain install nightly && cargo install cargo-fuzz
 # Targets: draft_field_signal | parse_enums | confidence_roundtrip.
@@ -59,7 +62,7 @@ check: fmt test scaffold-check
 # Rust + iOS smoke shell + Android smoke shell. Slow. Requires Xcode, Android SDK+NDK, cargo-ndk.
 check-mobile: check ios-build android-build
 
-ci: fmt-check lint test doc scaffold-check
+ci: fmt-check lint test doc scaffold-check build-script-test
 
 # --- iOS native shell template ---
 

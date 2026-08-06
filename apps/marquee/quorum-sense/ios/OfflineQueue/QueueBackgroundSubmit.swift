@@ -5,10 +5,7 @@ import Foundation
 public enum QueueBackgroundSubmit {
     public static let taskIdentifier = "se.reflective.quorum.queue-submit"
 
-    private static var submitHandler: (@Sendable () async -> Int)?
-
     public static func register(submitHandler: @escaping @Sendable () async -> Int) {
-        self.submitHandler = submitHandler
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: taskIdentifier,
             using: nil
