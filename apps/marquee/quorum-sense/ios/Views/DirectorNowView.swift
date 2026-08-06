@@ -358,7 +358,7 @@ public struct ContextTrailView: View {
     }
 }
 
-private struct PresenceStrip: View {
+struct PresenceStrip: View {
     let presence: [PresenceHint]
 
     var body: some View {
@@ -403,7 +403,7 @@ private extension DirectorIntent {
     }
 }
 
-private extension View {
+extension View {
     func directorOverline() -> some View {
         font(Brand.monoMedium(11))
             .textCase(.uppercase)
